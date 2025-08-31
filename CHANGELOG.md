@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.2.0...v0.3.0) - 2025-08-31
+
+### Fixed
+
+- add HTTP client configuration to fix NoHttpClient error
+- remove invalid previous_version variable from git_release_body template
+
 ## [0.2.0](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.1.0...v0.2.0) - 2025-08-31
 
 ### Added
