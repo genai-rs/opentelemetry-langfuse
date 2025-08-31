@@ -37,7 +37,7 @@ Set these environment variables:
 ```bash
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
-LANGFUSE_BASE_URL=https://cloud.langfuse.com  # Optional
+LANGFUSE_HOST=https://cloud.langfuse.com  # Optional, defaults to cloud instance
 ```
 
 ## Examples
