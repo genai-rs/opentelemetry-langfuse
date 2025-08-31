@@ -18,6 +18,7 @@ pub struct ExporterBuilder {
     auth_header: Option<String>,
     timeout: Option<Duration>,
     additional_headers: HashMap<String, String>,
+    http_client: Option<reqwest::Client>,
 }
 
 impl ExporterBuilder {
@@ -28,6 +29,7 @@ impl ExporterBuilder {
             auth_header: None,
             timeout: None,
             additional_headers: HashMap::new(),
+            http_client: None,
         }
     }
 
@@ -79,6 +81,20 @@ impl ExporterBuilder {
     /// * `timeout` - The timeout duration
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = Some(timeout);
+        self
+    }
+
+    /// Sets a custom HTTP client for the exporter.
+    ///
+    /// By default, a new reqwest::Client will be created. Use this method
+    /// if you need custom configuration like proxy settings, custom certificates,
+    /// or connection pooling.
+    ///
+    /// # Arguments
+    ///
+    /// * `client` - The HTTP client to use
+    pub fn with_http_client(mut self, client: reqwest::Client) -> Self {
+        self.http_client = Some(client);
         self
     }
 
@@ -252,9 +268,12 @@ impl ExporterBuilder {
             }
         }
 
-        // Build HTTP config
+        // Build HTTP config with client
+        let http_client = self.http_client.unwrap_or_default();
+
         let mut http_config = SpanExporter::builder()
             .with_http()
+            .with_http_client(http_client)
             .with_endpoint(endpoint)
             .with_headers(headers);
 
@@ -522,10 +541,9 @@ mod tests {
         env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
         env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
 
-        // The function should not panic and return a result
-        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        // The function should successfully create an exporter
         let result = exporter_from_langfuse_env();
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Clean up
         env::remove_var("LANGFUSE_HOST");
@@ -557,10 +575,9 @@ mod tests {
             "Authorization=Bearer test-token",
         );
 
-        // The function should not panic and return a result
-        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        // The function should successfully create an exporter
         let result = exporter_from_otel_env();
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Clean up
         env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
@@ -580,10 +597,9 @@ mod tests {
             "Authorization=Bearer test-token",
         );
 
-        // The function should not panic and return a result
-        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        // The function should successfully create an exporter
         let result = exporter_from_otel_env();
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Clean up
         env::remove_var("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT");
@@ -600,9 +616,9 @@ mod tests {
             "authorization=Bearer test-token",
         );
 
-        // The function should not panic and handle lowercase authorization
+        // The function should successfully handle lowercase authorization
         let result = exporter_from_otel_env();
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Clean up
         env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
@@ -653,10 +669,9 @@ mod tests {
             "Authorization=Bearer otel-token",
         );
 
-        // The function should not panic and return a result
-        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        // The function should successfully create an exporter
         let result = exporter_from_env();
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Clean up
         env::remove_var("LANGFUSE_HOST");
@@ -676,10 +691,9 @@ mod tests {
             "Authorization=Bearer otel-token",
         );
 
-        // The function should not panic and return a result
-        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        // The function should successfully create an exporter
         let result = exporter_from_env();
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Clean up
         env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
@@ -699,7 +713,7 @@ mod tests {
         env::set_var("OTEL_EXPORTER_OTLP_COMPRESSION", "gzip");
 
         let result = exporter_from_langfuse_env();
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Clean up for next test
         env::remove_var("LANGFUSE_HOST");
@@ -711,7 +725,7 @@ mod tests {
         env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer test");
 
         let result = exporter_from_otel_env();
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Clean up for next test
         env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
@@ -722,7 +736,7 @@ mod tests {
         env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
 
         let result = exporter_from_env();
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Clean up
         env::remove_var("LANGFUSE_PUBLIC_KEY");
@@ -743,7 +757,7 @@ mod tests {
             .build();
 
         // Should succeed without needing auth_header since we have authorization
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Test with mixed case
         let result = ExporterBuilder::new()
@@ -751,7 +765,7 @@ mod tests {
             .with_header("AUTHORIZATION", "Bearer test-token")
             .build();
 
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
 
         // Test that auth_header takes precedence over header from with_header
         let result = ExporterBuilder::new()
@@ -761,8 +775,8 @@ mod tests {
             .build();
 
         // The auth_header should take precedence over with_header
-        // This will fail with OtlpExporter error but would have "Bearer from-auth"
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        // This will succeed with "Bearer from-auth"
+        assert!(result.is_ok());
 
         // Test with basic_auth taking precedence
         let result = ExporterBuilder::new()
@@ -772,6 +786,6 @@ mod tests {
             .build();
 
         // The basic_auth should take precedence (creating "Basic dXNlcjpwYXNz")
-        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        assert!(result.is_ok());
     }
 }

@@ -107,6 +107,34 @@ let exporter = ExporterBuilder::new()
     .build()?;
 ```
 
+### Custom HTTP Client
+
+By default, the exporter creates a new `reqwest::Client` with rustls TLS support, which is suitable for most use cases and works with HTTPS endpoints out of the box.
+
+You can provide your own client for advanced configurations:
+- Proxy settings
+- Custom root certificates
+- Connection pooling
+- Custom timeout configurations
+
+```rust
+use opentelemetry_langfuse::ExporterBuilder;
+use std::time::Duration;
+
+let custom_client = reqwest::Client::builder()
+    .timeout(Duration::from_secs(30))
+    .proxy(reqwest::Proxy::http("http://proxy.example.com:8080")?)
+    .build()?;
+
+let exporter = ExporterBuilder::new()
+    .with_host("https://cloud.langfuse.com")
+    .with_basic_auth("pk-lf-...", "sk-lf-...")
+    .with_http_client(custom_client)
+    .build()?;
+```
+
+**Note on TLS**: The crate includes `rustls-tls` by default for HTTPS support. If you're building a custom client or have specific TLS requirements, ensure your `reqwest` client is configured with appropriate TLS features.
+
 ## Examples
 
 See the [examples](./examples) directory for complete working examples:
@@ -114,6 +142,7 @@ See the [examples](./examples) directory for complete working examples:
 - [`basic.rs`](./examples/basic.rs) - Simple usage with environment variables
 - [`manual_config.rs`](./examples/manual_config.rs) - Manual configuration without env vars
 - [`otel_env.rs`](./examples/otel_env.rs) - Using standard OpenTelemetry environment variables
+- [`custom_http_client.rs`](./examples/custom_http_client.rs) - Using a custom HTTP client for proxy or advanced configurations
 
 ## License
 
