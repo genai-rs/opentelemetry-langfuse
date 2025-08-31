@@ -13,7 +13,7 @@ use tokio::time::sleep;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Load environment variables from .env file if present (for credentials)
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
 
     // Manual configuration using the builder
     let exporter = ExporterBuilder::new()
