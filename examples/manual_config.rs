@@ -1,5 +1,6 @@
 //! Example showing manual configuration without environment variables.
 
+use langfuse_ergonomic::client::LangfuseClient;
 use opentelemetry::global;
 use opentelemetry::trace::{Span, Tracer};
 use opentelemetry::KeyValue;
@@ -100,7 +101,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     global::shutdown_tracer_provider();
     sleep(Duration::from_secs(1)).await;
 
-    println!("Done! Check your Langfuse dashboard for the traces.");
+    // Verify traces were sent to Langfuse
+    println!("Verifying traces in Langfuse...");
+    verify_traces_in_langfuse().await?;
 
     Ok(())
 }
@@ -132,4 +135,42 @@ async fn do_something_that_might_fail<T: Tracer>(tracer: &T) -> Result<String, S
         span.end();
         Ok("Success".to_string())
     }
+}
+
+async fn verify_traces_in_langfuse() -> Result<(), Box<dyn Error>> {
+    // Create Langfuse client using the same credentials
+    let client = LangfuseClient::from_env()?;
+    
+    // Query for recent traces
+    let traces = client.list_traces()
+        .limit(10)
+        .call()
+        .await?;
+    
+    // The response is a JSON value, so we check if it contains data
+    if let Some(data) = traces.get("data") {
+        if let Some(array) = data.as_array() {
+            if array.is_empty() {
+                println!("⚠️  No traces found in Langfuse yet. They may still be processing.");
+            } else {
+                println!("✅ Found {} traces in Langfuse!", array.len());
+                // Show first few trace IDs with details
+                for (i, trace) in array.iter().take(3).enumerate() {
+                    if let Some(id) = trace.get("id").and_then(|v| v.as_str()) {
+                        print!("   {}. Trace ID: {}", i + 1, id);
+                        if let Some(name) = trace.get("name").and_then(|v| v.as_str()) {
+                            print!(" ({})", name);
+                        }
+                        println!();
+                    }
+                }
+            }
+        } else {
+            println!("✅ Successfully connected to Langfuse API");
+        }
+    } else {
+        println!("⚠️  Unexpected response format from Langfuse");
+    }
+    
+    Ok(())
 }
