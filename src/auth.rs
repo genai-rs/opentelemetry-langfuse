@@ -1,5 +1,6 @@
 //! Authentication utilities for Langfuse.
 
+use crate::constants::{ENV_LANGFUSE_PUBLIC_KEY, ENV_LANGFUSE_SECRET_KEY};
 use base64::{engine::general_purpose::STANDARD, Engine};
 use std::env;
 
@@ -58,11 +59,11 @@ pub fn build_auth_header(public_key: &str, secret_key: &str) -> String {
 /// let auth = build_auth_header_from_env().unwrap();
 /// ```
 pub fn build_auth_header_from_env() -> Result<String, crate::Error> {
-    let public_key = env::var("LANGFUSE_PUBLIC_KEY")
-        .map_err(|_| crate::Error::MissingEnvironmentVariable("LANGFUSE_PUBLIC_KEY"))?;
+    let public_key = env::var(ENV_LANGFUSE_PUBLIC_KEY)
+        .map_err(|_| crate::Error::MissingEnvironmentVariable(ENV_LANGFUSE_PUBLIC_KEY))?;
 
-    let secret_key = env::var("LANGFUSE_SECRET_KEY")
-        .map_err(|_| crate::Error::MissingEnvironmentVariable("LANGFUSE_SECRET_KEY"))?;
+    let secret_key = env::var(ENV_LANGFUSE_SECRET_KEY)
+        .map_err(|_| crate::Error::MissingEnvironmentVariable(ENV_LANGFUSE_SECRET_KEY))?;
 
     Ok(build_auth_header(&public_key, &secret_key))
 }
@@ -82,29 +83,29 @@ mod tests {
     #[test]
     #[serial]
     fn test_build_auth_header_from_env() {
-        env::set_var("LANGFUSE_PUBLIC_KEY", "pk-env-test");
-        env::set_var("LANGFUSE_SECRET_KEY", "sk-env-secret");
+        env::set_var(ENV_LANGFUSE_PUBLIC_KEY, "pk-env-test");
+        env::set_var(ENV_LANGFUSE_SECRET_KEY, "sk-env-secret");
 
         let auth = build_auth_header_from_env().unwrap();
         let expected = format!("Basic {}", STANDARD.encode("pk-env-test:sk-env-secret"));
         assert_eq!(auth, expected);
         
         // Cleanup
-        env::remove_var("LANGFUSE_PUBLIC_KEY");
-        env::remove_var("LANGFUSE_SECRET_KEY");
+        env::remove_var(ENV_LANGFUSE_PUBLIC_KEY);
+        env::remove_var(ENV_LANGFUSE_SECRET_KEY);
     }
 
     #[test]
     #[serial]
     fn test_missing_env_keys() {
-        env::remove_var("LANGFUSE_PUBLIC_KEY");
-        env::remove_var("LANGFUSE_SECRET_KEY");
+        env::remove_var(ENV_LANGFUSE_PUBLIC_KEY);
+        env::remove_var(ENV_LANGFUSE_SECRET_KEY);
 
         let result = build_auth_header_from_env();
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            crate::Error::MissingEnvironmentVariable("LANGFUSE_PUBLIC_KEY")
+            crate::Error::MissingEnvironmentVariable(ENV_LANGFUSE_PUBLIC_KEY)
         ));
     }
 }
