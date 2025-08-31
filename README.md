@@ -66,7 +66,7 @@ Use `exporter_from_otel_env()` following the [OTLP Exporter specification](https
 ```bash
 # For endpoint (use ONE of these):
 # Option A: Direct traces endpoint (recommended)
-OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://cloud.langfuse.com/api/public/otel/v1/traces
 
 # Option B: Base endpoint that works with Langfuse
 OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel  # /v1/traces will be appended
@@ -82,10 +82,10 @@ OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64_encoded_credentials>"
 Use `exporter_from_env()` for automatic fallback with sensible defaults. Priority order:
 
 **For endpoint:**
-1. `LANGFUSE_HOST` (appends `/api/public/otel`)
+1. `LANGFUSE_HOST` (appends `/api/public/otel/v1/traces`)
 2. `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
 3. `OTEL_EXPORTER_OTLP_ENDPOINT` (appends `/v1/traces`)
-4. **Default**: `https://cloud.langfuse.com/api/public/otel` (when no endpoint variables are set)
+4. **Default**: `https://cloud.langfuse.com/api/public/otel/v1/traces` (when no endpoint variables are set)
 
 **For authentication:**
 1. `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`

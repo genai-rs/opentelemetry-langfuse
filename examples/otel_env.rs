@@ -43,7 +43,7 @@ async fn test_traces_endpoint() -> Result<(), Box<dyn Error>> {
     // Set OTEL environment variables with traces endpoint
     std::env::set_var(
         "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
-        format!("{}/api/public/otel", host),
+        format!("{}/api/public/otel/v1/traces", host),
     );
     std::env::set_var(
         "OTEL_EXPORTER_OTLP_TRACES_HEADERS",

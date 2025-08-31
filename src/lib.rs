@@ -81,7 +81,7 @@
 //!
 //! Example:
 //! ```bash
-//! export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="https://cloud.langfuse.com/api/public/otel"
+//! export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="https://cloud.langfuse.com/api/public/otel/v1/traces"
 //! export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Authorization=Basic <base64_encoded_credentials>"
 //! ```
 //!
