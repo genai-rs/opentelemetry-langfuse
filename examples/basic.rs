@@ -26,10 +26,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Create tracer provider with the Langfuse exporter
     let provider = SdkTracerProvider::builder()
         .with_batch_exporter(exporter)
-        .with_resource(Resource::builder().with_attributes(vec![
-            KeyValue::new("service.name", "opentelemetry-langfuse-example"),
-            KeyValue::new("service.version", "0.1.0"),
-        ]).build())
+        .with_resource(
+            Resource::builder()
+                .with_attributes(vec![
+                    KeyValue::new("service.name", "opentelemetry-langfuse-example"),
+                    KeyValue::new("service.version", "0.1.0"),
+                ])
+                .build(),
+        )
         .build();
 
     // Set as global provider
@@ -114,13 +118,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 async fn verify_traces_in_langfuse() -> Result<(), Box<dyn Error>> {
     // Create Langfuse client using the same credentials
     let client = LangfuseClient::from_env()?;
-    
+
     // Query for recent traces
-    let traces = client.list_traces()
-        .limit(10)
-        .call()
-        .await?;
-    
+    let traces = client.list_traces().limit(10).call().await?;
+
     // The response is a JSON value, so we check if it contains data
     if let Some(data) = traces.get("data") {
         if let Some(array) = data.as_array() {
@@ -141,6 +142,6 @@ async fn verify_traces_in_langfuse() -> Result<(), Box<dyn Error>> {
     } else {
         println!("⚠️  Unexpected response format from Langfuse");
     }
-    
+
     Ok(())
 }
