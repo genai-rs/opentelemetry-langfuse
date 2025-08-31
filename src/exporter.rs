@@ -1,4 +1,10 @@
 //! Langfuse OTLP exporter configuration.
+//!
+//! This module provides the [`ExporterBuilder`] for configuring an OpenTelemetry
+//! OTLP exporter that sends traces to Langfuse.
+//!
+//! See the [Langfuse OpenTelemetry documentation](https://langfuse.com/integrations/native/opentelemetry)
+//! for more details about the integration.
 
 use crate::{auth, endpoint, Error, Result};
 use opentelemetry_otlp::{SpanExporter, WithExportConfig, WithHttpConfig};
