@@ -1,5 +1,6 @@
 //! Constants for the opentelemetry-langfuse library.
 
+// Re-export OTEL constants from opentelemetry-otlp
 pub use opentelemetry_otlp::{
     OTEL_EXPORTER_OTLP_COMPRESSION, OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
     OTEL_EXPORTER_OTLP_TIMEOUT, OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,

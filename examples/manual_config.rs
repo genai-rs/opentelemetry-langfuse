@@ -13,8 +13,10 @@ use tokio::time::sleep;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // Load environment variables from .env file if present (for credentials)
     dotenvy::dotenv().ok();
 
+    // Manual configuration using the builder
     let exporter = ExporterBuilder::new()
         .with_host("https://cloud.langfuse.com")
         .with_basic_auth(
@@ -24,6 +26,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_timeout(Duration::from_secs(10))
         .build()?;
 
+    // Create tracer provider with the configured exporter
     let tracer_provider = SdkTracerProvider::builder()
         .with_batch_exporter(exporter)
         .with_resource(
@@ -37,12 +40,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
         .build();
 
+    // Set as global provider
     global::set_tracer_provider(tracer_provider.clone());
 
     println!("Tracer initialized with manual configuration!");
 
+    // Get a tracer
     let tracer = global::tracer("manual-tracer");
 
+    // Create a span with custom attributes
     let mut span = tracer
         .span_builder("manual-operation")
         .with_attributes(vec![
@@ -52,6 +58,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ])
         .start(&tracer);
 
+    // Add an event indicating an error was handled
     span.add_event(
         "error_handled",
         vec![
@@ -60,8 +67,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ],
     );
 
+    // Set status
     span.set_status(opentelemetry::trace::Status::Ok);
 
+    // Add structured event
     span.add_event(
         "user_action",
         vec![
@@ -77,18 +86,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Custom span created!");
 
+    // Example of error handling with spans
     let result = do_something_that_might_fail(&tracer).await;
     match result {
         Ok(value) => println!("Operation succeeded: {}", value),
         Err(e) => println!("Operation failed (as expected in demo): {}", e),
     }
 
+    // Flush and shutdown
     println!("Flushing traces...");
     sleep(Duration::from_secs(2)).await;
 
+    // Explicit shutdown using the provider
     drop(tracer_provider);
+    // Provider will be shutdown when it goes out of scope
     sleep(Duration::from_secs(1)).await;
 
+    // Verify traces were sent to Langfuse
     println!("Verifying traces in Langfuse...");
     verify_traces_in_langfuse().await?;
 
@@ -101,8 +115,10 @@ async fn do_something_that_might_fail<T: Tracer>(tracer: &T) -> Result<String, S
         .with_attributes(vec![KeyValue::new("risk.level", "high")])
         .start(tracer);
 
+    // Simulate some processing
     sleep(Duration::from_millis(100)).await;
 
+    // Simulate an error condition
     let error_occurred = true;
     if error_occurred {
         span.set_status(opentelemetry::trace::Status::error("Operation failed"));
@@ -123,16 +139,20 @@ async fn do_something_that_might_fail<T: Tracer>(tracer: &T) -> Result<String, S
 }
 
 async fn verify_traces_in_langfuse() -> Result<(), Box<dyn Error>> {
+    // Create Langfuse client using the same credentials
     let client = LangfuseClient::from_env()?;
 
+    // Query for recent traces
     let traces = client.list_traces().limit(10).call().await?;
 
+    // The response is a JSON value, so we check if it contains data
     if let Some(data) = traces.get("data") {
         if let Some(array) = data.as_array() {
             if array.is_empty() {
                 println!("⚠️  No traces found in Langfuse yet. They may still be processing.");
             } else {
                 println!("✅ Found {} traces in Langfuse!", array.len());
+                // Show first few trace IDs with details
                 for (i, trace) in array.iter().take(3).enumerate() {
                     if let Some(id) = trace.get("id").and_then(|v| v.as_str()) {
                         print!("   {}. Trace ID: {}", i + 1, id);
