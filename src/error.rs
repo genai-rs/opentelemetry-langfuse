@@ -13,7 +13,7 @@ pub enum Error {
     #[error("Missing configuration: {0}")]
     MissingConfiguration(&'static str),
 
-    /// OpenTelemetry error.
+    /// OpenTelemetry trace error.
     #[error("OpenTelemetry error: {0}")]
     OpenTelemetry(#[from] opentelemetry::trace::TraceError),
 
