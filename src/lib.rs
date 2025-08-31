@@ -14,52 +14,51 @@
 //! # Quick Start
 //!
 //! ```no_run
-//! use opentelemetry_langfuse::{builder, TracingContext};
-//! use opentelemetry::trace::Tracer;
+//! use opentelemetry_langfuse::{LangfuseSpanExt, GenAISpanExt};
+//! use opentelemetry::trace::{Tracer, Span};
 //!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create a context for your traces
-//! let context = TracingContext::new()
-//!     .with_session("session-123")
-//!     .with_user("user-456")
-//!     .with_metadata("environment", serde_json::json!("production"));
+//! # fn example<T: Tracer>(tracer: &T) {
+//! // Create a span using your existing OpenTelemetry tracer
+//! let mut span = tracer.span_builder("chat.completion").start(tracer);
 //!
-//! // Build a tracer with Langfuse integration
-//! let tracer = builder()
-//!     .with_service_name("my-llm-service")
-//!     .with_api_key("your-langfuse-api-key")
-//!     .with_context(context)
-//!     .build()?;
+//! // Enrich with Langfuse attributes using extension methods
+//! span.set_user_id("user-456")
+//!     .set_session_id("session-123")
+//!     .set_observation_model("gpt-4")
+//!     .set_observation_type("generation");
 //!
-//! // Use the tracer for LLM operations
-//! let mut span = tracer.span_builder("chat.completion").start(&tracer);
-//! span.set_attribute(opentelemetry::KeyValue::new("gen_ai.request.model", "gpt-4"));
+//! // Add GenAI semantic convention attributes
+//! span.set_gen_ai_temperature(0.7)
+//!     .set_gen_ai_max_tokens(1000)
+//!     .set_gen_ai_usage(150, 250); // prompt and completion tokens
+//!
 //! // ... your LLM call here ...
 //! span.end();
-//! # Ok(())
 //! # }
 //! ```
 //!
-//! # Context Management
+//! # Span Enrichment
 //!
-//! The library provides explicit context passing, avoiding global state:
+//! The library provides extension traits to easily add Langfuse and GenAI attributes to any OpenTelemetry span:
 //!
 //! ```no_run
-//! use opentelemetry_langfuse::{TracingContext, TracingContextBuilder};
+//! use opentelemetry_langfuse::{LangfuseSpanExt, GenAISpanExt};
+//! use opentelemetry::trace::{Tracer, Span};
+//! use serde_json::json;
 //!
-//! // Create a context using the builder
-//! let context = TracingContextBuilder::new()
-//!     .session_id("session-789")
-//!     .user_id("user-012")
-//!     .model("gpt-4")
-//!     .temperature(0.7)
-//!     .build();
+//! # fn example<T: Tracer>(tracer: &T) {
+//! let mut span = tracer.span_builder("llm.request").start(tracer);
 //!
-//! // Pass context explicitly through your application
-//! fn process_request(context: &TracingContext) {
-//!     // Context is available without global state
-//!     let session = context.get_attribute("session.id");
-//! }
+//! // Add Langfuse-specific attributes
+//! span.set_trace_name("Customer Support Chat")
+//!     .set_trace_tags(vec!["support".to_string(), "chat".to_string()])
+//!     .add_langfuse_metadata("priority", json!("high"));
+//!
+//! // Add GenAI semantic convention attributes  
+//! span.set_gen_ai_prompt(0, "system", "You are a helpful assistant")
+//!     .set_gen_ai_prompt(1, "user", "What's the weather?")
+//!     .set_gen_ai_completion(0, "assistant", "I can help with that...");
+//! # }
 //! ```
 //!
 //! # Attribute Mapping
@@ -83,10 +82,10 @@
 //! ```
 
 pub mod attributes;
-pub mod builder;
 pub mod context;
 pub mod mapper;
 pub mod processor;
+pub mod span_ext;
 
 pub mod auth;
 pub mod constants;
@@ -98,10 +97,10 @@ pub use attributes::{
     LangfuseAttributes, ObservationAttributesBuilder, OpenTelemetryGenAIAttributes,
     TraceAttributesBuilder,
 };
-pub use builder::{BatchConfig, BuilderError, BuilderResult, LangfuseTracerBuilder};
 pub use context::{TracingContext, TracingContextBuilder};
 pub use mapper::{AttributeMapper, GenAIAttributeMapper, MappingRule, PassThroughMapper};
-pub use processor::{LangfuseSpanProcessor, MappingExporter};
+pub use processor::MappingExporter;
+pub use span_ext::{GenAISpanExt, LangfuseSpanExt};
 
 pub use auth::{build_auth_header, build_auth_header_from_env};
 pub use endpoint::{build_otlp_endpoint, build_otlp_endpoint_from_env};
@@ -110,6 +109,3 @@ pub use exporter::{
     exporter, exporter_from_env, exporter_from_langfuse_env, exporter_from_otel_env,
     ExporterBuilder,
 };
-
-#[cfg(feature = "tokio")]
-pub use builder::builder;

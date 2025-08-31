@@ -144,20 +144,18 @@ impl ExporterBuilder {
 
         if let Ok(auth) = auth::build_auth_header_from_env() {
             self.auth_header = Some(auth);
-        } else {
-            if let Ok(headers) = env::var(OTEL_EXPORTER_OTLP_TRACES_HEADERS)
-                .or_else(|_| env::var(OTEL_EXPORTER_OTLP_HEADERS))
-            {
-                for header_pair in headers.split(',') {
-                    if let Some((key, value)) = header_pair.split_once('=') {
-                        let key = key.trim().to_string();
-                        let value = value.trim().to_string();
+        } else if let Ok(headers) = env::var(OTEL_EXPORTER_OTLP_TRACES_HEADERS)
+            .or_else(|_| env::var(OTEL_EXPORTER_OTLP_HEADERS))
+        {
+            for header_pair in headers.split(',') {
+                if let Some((key, value)) = header_pair.split_once('=') {
+                    let key = key.trim().to_string();
+                    let value = value.trim().to_string();
 
-                        if key.eq_ignore_ascii_case("authorization") && self.auth_header.is_none() {
-                            self.auth_header = Some(value);
-                        } else {
-                            self.additional_headers.insert(key, value);
-                        }
+                    if key.eq_ignore_ascii_case("authorization") && self.auth_header.is_none() {
+                        self.auth_header = Some(value);
+                    } else {
+                        self.additional_headers.insert(key, value);
                     }
                 }
             }
@@ -168,7 +166,6 @@ impl ExporterBuilder {
                 self.timeout = Some(Duration::from_millis(timeout_ms));
             }
         }
-
 
         Ok(self)
     }
@@ -186,7 +183,6 @@ impl ExporterBuilder {
         let mut headers = HashMap::new();
 
         headers.extend(self.additional_headers);
-
 
         if let Some(auth_header) = self.auth_header {
             let auth_keys: Vec<String> = headers
@@ -287,7 +283,6 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
         }
     }
 
-
     builder.build()
 }
 
@@ -378,7 +373,6 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
             builder = builder.with_timeout(Duration::from_millis(timeout_ms));
         }
     }
-
 
     builder.build()
 }
@@ -617,7 +611,6 @@ mod tests {
     #[test]
     #[serial]
     fn test_timeout_and_compression_env_vars() {
-
         env::set_var("LANGFUSE_HOST", "https://test.com");
         env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
         env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
@@ -654,7 +647,6 @@ mod tests {
 
     #[test]
     fn test_case_insensitive_authorization_header() {
-
         let result = ExporterBuilder::new()
             .with_endpoint("https://test.com")
             .with_header("authorization", "Bearer test-token")

@@ -11,7 +11,6 @@ use opentelemetry::KeyValue;
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 
-
 /// Langfuse-specific attribute names.
 ///
 /// These attributes are used to map OpenTelemetry span attributes directly
@@ -77,76 +76,75 @@ impl LangfuseAttributes {
 /// These follow the OpenTelemetry specification for generative AI systems.
 /// When the official constants are available, we use them. Otherwise, we provide
 /// our own definitions for compatibility.
-/// See: https://opentelemetry.io/docs/specs/semconv/gen-ai/
+/// See: <https://opentelemetry.io/docs/specs/semconv/gen-ai/>
 pub struct OpenTelemetryGenAIAttributes;
 
 impl OpenTelemetryGenAIAttributes {
-    
     /// The name of the GenAI model being used
     pub const REQUEST_MODEL: &'static str = "gen_ai.request.model";
-    
+
     /// Temperature setting for the model
     pub const REQUEST_TEMPERATURE: &'static str = "gen_ai.request.temperature";
-    
+
     /// Maximum tokens to generate
     pub const REQUEST_MAX_TOKENS: &'static str = "gen_ai.request.max_tokens";
-    
+
     /// Top-p sampling parameter
     pub const REQUEST_TOP_P: &'static str = "gen_ai.request.top_p";
-    
+
     /// Top-k sampling parameter
     pub const REQUEST_TOP_K: &'static str = "gen_ai.request.top_k";
-    
+
     /// Stop sequences
     pub const REQUEST_STOP_SEQUENCES: &'static str = "gen_ai.request.stop_sequences";
-    
+
     /// Frequency penalty
     pub const REQUEST_FREQUENCY_PENALTY: &'static str = "gen_ai.request.frequency_penalty";
-    
+
     /// Presence penalty
     pub const REQUEST_PRESENCE_PENALTY: &'static str = "gen_ai.request.presence_penalty";
-    
+
     /// The unique identifier of the response
     pub const RESPONSE_ID: &'static str = "gen_ai.response.id";
-    
+
     /// The model used for the response
     pub const RESPONSE_MODEL: &'static str = "gen_ai.response.model";
-    
+
     /// Finish reasons for the response
     pub const RESPONSE_FINISH_REASONS: &'static str = "gen_ai.response.finish_reasons";
-    
+
     /// Number of tokens in the prompt (input)
     /// Note: The spec is moving towards gen_ai.usage.input_tokens
     pub const USAGE_PROMPT_TOKENS: &'static str = "gen_ai.usage.prompt_tokens";
-    
+
     /// Number of tokens in the completion (output)
     /// Note: The spec is moving towards gen_ai.usage.output_tokens
     pub const USAGE_COMPLETION_TOKENS: &'static str = "gen_ai.usage.completion_tokens";
-    
+
     /// Total number of tokens used
     pub const USAGE_TOTAL_TOKENS: &'static str = "gen_ai.usage.total_tokens";
-    
+
     /// JSON-serialized prompts
     pub const PROMPT_JSON: &'static str = "gen_ai.prompt_json";
-    
+
     /// JSON-serialized completions
     pub const COMPLETION_JSON: &'static str = "gen_ai.completion_json";
-    
+
     /// Role of the first prompt
     pub const PROMPT_0_ROLE: &'static str = "gen_ai.prompt.0.role";
-    
+
     /// Content of the first prompt
     pub const PROMPT_0_CONTENT: &'static str = "gen_ai.prompt.0.content";
-    
+
     /// Role of the first completion
     pub const COMPLETION_0_ROLE: &'static str = "gen_ai.completion.0.role";
-    
+
     /// Content of the first completion
     pub const COMPLETION_0_CONTENT: &'static str = "gen_ai.completion.0.content";
-    
+
     /// The GenAI system being used (e.g., "openai", "anthropic")
     pub const SYSTEM: &'static str = "gen_ai.system";
-    
+
     /// The type of GenAI operation
     pub const OPERATION_NAME: &'static str = "gen_ai.operation.name";
 }

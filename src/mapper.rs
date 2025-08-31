@@ -139,20 +139,31 @@ impl GenAIAttributeMapper {
             }
             opentelemetry::Value::String(ref s) => JsonValue::String(s.to_string()),
             opentelemetry::Value::Array(ref arr) => {
-                let values: Vec<JsonValue> = arr
-                    .iter()
-                    .map(|v| match v {
-                        opentelemetry::Value::Bool(b) => JsonValue::Bool(*b),
-                        opentelemetry::Value::I64(i) => JsonValue::Number((*i).into()),
-                        opentelemetry::Value::F64(f) => JsonValue::Number(
-                            serde_json::Number::from_f64(*f).unwrap_or_else(|| 0.into()),
-                        ),
-                        opentelemetry::Value::String(s) => JsonValue::String(s.to_string()),
-                        _ => JsonValue::Null,
-                    })
-                    .collect();
+                let values: Vec<JsonValue> = match arr {
+                    opentelemetry::Array::Bool(bools) => {
+                        bools.iter().map(|b| JsonValue::Bool(*b)).collect()
+                    }
+                    opentelemetry::Array::I64(ints) => ints
+                        .iter()
+                        .map(|i| JsonValue::Number((*i).into()))
+                        .collect(),
+                    opentelemetry::Array::F64(floats) => floats
+                        .iter()
+                        .map(|f| {
+                            JsonValue::Number(
+                                serde_json::Number::from_f64(*f).unwrap_or_else(|| 0.into()),
+                            )
+                        })
+                        .collect(),
+                    opentelemetry::Array::String(strings) => strings
+                        .iter()
+                        .map(|s| JsonValue::String(s.to_string()))
+                        .collect(),
+                    _ => vec![],
+                };
                 JsonValue::Array(values)
             }
+            _ => JsonValue::Null,
         }
     }
 
@@ -251,19 +262,17 @@ impl AttributeMapper for GenAIAttributeMapper {
             let value = self.key_value_to_json(attr);
 
             let mut found_mapping = false;
-            for (_, rule) in &self.mapping_rules {
-                match rule {
-                    MappingRule::Bidirectional {
-                        langfuse_key,
-                        otel_key,
-                    } => {
-                        if langfuse_key == key {
-                            result.push(self.json_to_key_value(otel_key.clone(), value.clone()));
-                            found_mapping = true;
-                            break;
-                        }
+            for rule in self.mapping_rules.values() {
+                if let MappingRule::Bidirectional {
+                    langfuse_key,
+                    otel_key,
+                } = rule
+                {
+                    if langfuse_key == key {
+                        result.push(self.json_to_key_value(otel_key.clone(), value.clone()));
+                        found_mapping = true;
+                        break;
                     }
-                    _ => {} // Other rule types are one-way from OTel to Langfuse
                 }
             }
 
