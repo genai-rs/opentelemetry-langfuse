@@ -89,7 +89,7 @@ mod tests {
         let auth = build_auth_header_from_env().unwrap();
         let expected = format!("Basic {}", STANDARD.encode("pk-env-test:sk-env-secret"));
         assert_eq!(auth, expected);
-        
+
         // Cleanup
         env::remove_var(ENV_LANGFUSE_PUBLIC_KEY);
         env::remove_var(ENV_LANGFUSE_SECRET_KEY);

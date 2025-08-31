@@ -48,7 +48,8 @@ pub fn build_otlp_endpoint(base_url: &str) -> String {
 /// let endpoint = build_otlp_endpoint_from_env().unwrap();
 /// ```
 pub fn build_otlp_endpoint_from_env() -> Result<String, crate::Error> {
-    let base_url = env::var(ENV_LANGFUSE_HOST).unwrap_or_else(|_| DEFAULT_LANGFUSE_HOST.to_string());
+    let base_url =
+        env::var(ENV_LANGFUSE_HOST).unwrap_or_else(|_| DEFAULT_LANGFUSE_HOST.to_string());
     Ok(build_otlp_endpoint(&base_url))
 }
 
@@ -83,7 +84,7 @@ mod tests {
         env::set_var(ENV_LANGFUSE_HOST, "https://cloud.langfuse.com/");
         let endpoint = build_otlp_endpoint_from_env().unwrap();
         assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
-        
+
         // Cleanup
         env::remove_var(ENV_LANGFUSE_HOST);
     }
@@ -94,6 +95,9 @@ mod tests {
         env::remove_var(ENV_LANGFUSE_HOST);
         let result = build_otlp_endpoint_from_env();
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "https://cloud.langfuse.com/api/public/otel");
+        assert_eq!(
+            result.unwrap(),
+            "https://cloud.langfuse.com/api/public/otel"
+        );
     }
 }

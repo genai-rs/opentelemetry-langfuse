@@ -104,18 +104,15 @@ impl ExporterBuilder {
         K: Into<String>,
         V: Into<String>,
     {
-        self.additional_headers.extend(
-            headers
-                .into_iter()
-                .map(|(k, v)| (k.into(), v.into())),
-        );
+        self.additional_headers
+            .extend(headers.into_iter().map(|(k, v)| (k.into(), v.into())));
         self
     }
 
     /// Loads configuration from environment variables.
     ///
     /// This method reads (in order of precedence):
-    /// 
+    ///
     /// For endpoint:
     /// 1. LANGFUSE_HOST (with /api/public/otel appended)
     /// 2. OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
@@ -133,7 +130,7 @@ impl ExporterBuilder {
     pub fn from_env(mut self) -> Result<Self> {
         // Check for Langfuse-specific endpoint first (may use default)
         let langfuse_endpoint = endpoint::build_otlp_endpoint_from_env()?;
-        
+
         // Only use OTEL endpoints if LANGFUSE_HOST was not explicitly set
         if env::var(ENV_LANGFUSE_HOST).is_err() {
             // No LANGFUSE_HOST set, check for OTEL endpoints
@@ -164,7 +161,7 @@ impl ExporterBuilder {
                     if let Some((key, value)) = header_pair.split_once('=') {
                         let key = key.trim().to_string();
                         let value = value.trim().to_string();
-                        
+
                         // Check if this is an Authorization header
                         if key.eq_ignore_ascii_case("authorization") && self.auth_header.is_none() {
                             self.auth_header = Some(value);
@@ -175,14 +172,14 @@ impl ExporterBuilder {
                 }
             }
         }
-        
+
         // Handle timeout configuration
         if let Ok(timeout_str) = env::var(OTEL_EXPORTER_OTLP_TIMEOUT) {
             if let Ok(timeout_ms) = timeout_str.parse::<u64>() {
                 self.timeout = Some(Duration::from_millis(timeout_ms));
             }
         }
-        
+
         // Handle compression configuration
         if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
             if compression.eq_ignore_ascii_case("gzip") {
@@ -206,16 +203,18 @@ impl ExporterBuilder {
 
         // Create headers map
         let mut headers = HashMap::new();
-        
+
         // Add additional headers first (may include Authorization from OTEL env)
         headers.extend(self.additional_headers);
-        
+
         // If no Authorization header yet, add the auth_header
         if !headers.contains_key("Authorization") {
             if let Some(auth_header) = self.auth_header {
                 headers.insert("Authorization".to_string(), auth_header);
             } else {
-                return Err(Error::MissingConfiguration("Authorization header or Langfuse credentials"));
+                return Err(Error::MissingConfiguration(
+                    "Authorization header or Langfuse credentials",
+                ));
             }
         }
 
@@ -272,18 +271,18 @@ impl Default for ExporterBuilder {
 pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
     let endpoint = endpoint::build_otlp_endpoint_from_env()?;
     let auth = auth::build_auth_header_from_env()?;
-    
+
     let mut builder = ExporterBuilder::new()
         .with_endpoint(endpoint)
         .with_auth_header(auth);
-    
+
     // Handle timeout configuration
     if let Ok(timeout_str) = env::var(OTEL_EXPORTER_OTLP_TIMEOUT) {
         if let Ok(timeout_ms) = timeout_str.parse::<u64>() {
             builder = builder.with_timeout(Duration::from_millis(timeout_ms));
         }
     }
-    
+
     // Handle compression configuration
     if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
         if compression.eq_ignore_ascii_case("gzip") {
@@ -291,7 +290,7 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
             // We just document that we support it
         }
     }
-    
+
     builder.build()
 }
 
@@ -309,7 +308,7 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
 /// ### Headers Configuration
 /// - `OTEL_EXPORTER_OTLP_TRACES_HEADERS`: Headers for traces endpoint
 /// - `OTEL_EXPORTER_OTLP_HEADERS`: General OTLP headers
-/// 
+///
 /// Headers should be in the format: `key1=value1,key2=value2`
 ///
 /// ### Additional Configuration
@@ -317,7 +316,7 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
 /// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (`gzip` or none)
 ///
 /// ## Langfuse Configuration
-/// 
+///
 /// For Langfuse, use one of these endpoint configurations:
 /// - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://cloud.langfuse.com/api/public/otel`
 /// - `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel` (creates `/api/public/otel/v1/traces`)
@@ -351,22 +350,28 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
         // OTEL_EXPORTER_OTLP_ENDPOINT needs /v1/traces appended
         format!("{}/v1/traces", endpoint.trim_end_matches('/'))
     } else {
-        return Err(Error::MissingEnvironmentVariable("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT"));
+        return Err(Error::MissingEnvironmentVariable(
+            "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT",
+        ));
     };
 
     // Parse headers from OTEL environment variables
     let headers_str = env::var(OTEL_EXPORTER_OTLP_TRACES_HEADERS)
         .or_else(|_| env::var(OTEL_EXPORTER_OTLP_HEADERS))
-        .map_err(|_| Error::MissingEnvironmentVariable("OTEL_EXPORTER_OTLP_TRACES_HEADERS or OTEL_EXPORTER_OTLP_HEADERS"))?;
+        .map_err(|_| {
+            Error::MissingEnvironmentVariable(
+                "OTEL_EXPORTER_OTLP_TRACES_HEADERS or OTEL_EXPORTER_OTLP_HEADERS",
+            )
+        })?;
 
     let mut builder = ExporterBuilder::new().with_endpoint(endpoint);
-    
+
     // Parse OTEL headers format: "key1=value1,key2=value2"
     for header_pair in headers_str.split(',') {
         if let Some((key, value)) = header_pair.split_once('=') {
             let key = key.trim().to_string();
             let value = value.trim().to_string();
-            
+
             // Check if this is an Authorization header
             if key.eq_ignore_ascii_case("authorization") {
                 builder = builder.with_auth_header(value);
@@ -375,14 +380,14 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
             }
         }
     }
-    
+
     // Handle timeout configuration
     if let Ok(timeout_str) = env::var(OTEL_EXPORTER_OTLP_TIMEOUT) {
         if let Ok(timeout_ms) = timeout_str.parse::<u64>() {
             builder = builder.with_timeout(Duration::from_millis(timeout_ms));
         }
     }
-    
+
     // Handle compression configuration
     if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
         if compression.eq_ignore_ascii_case("gzip") {
@@ -523,7 +528,10 @@ mod tests {
     fn test_exporter_from_otel_env() {
         // Set up OTEL environment variables
         env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://test.com");
-        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer test-token");
+        env::set_var(
+            "OTEL_EXPORTER_OTLP_HEADERS",
+            "Authorization=Bearer test-token",
+        );
 
         // The function should not panic and return a result
         // In tests, this will fail with OtlpExporter error due to missing HTTP client
@@ -539,8 +547,14 @@ mod tests {
     #[serial]
     fn test_exporter_from_otel_env_traces_endpoint() {
         // Set up OTEL traces-specific endpoint
-        env::set_var("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "https://test.com/v1/traces");
-        env::set_var("OTEL_EXPORTER_OTLP_TRACES_HEADERS", "Authorization=Bearer test-token");
+        env::set_var(
+            "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+            "https://test.com/v1/traces",
+        );
+        env::set_var(
+            "OTEL_EXPORTER_OTLP_TRACES_HEADERS",
+            "Authorization=Bearer test-token",
+        );
 
         // The function should not panic and return a result
         // In tests, this will fail with OtlpExporter error due to missing HTTP client
@@ -557,7 +571,10 @@ mod tests {
     fn test_exporter_from_otel_env_lowercase_authorization() {
         // Test that lowercase "authorization" header is handled correctly
         env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://test.com");
-        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "authorization=Bearer test-token");
+        env::set_var(
+            "OTEL_EXPORTER_OTLP_HEADERS",
+            "authorization=Bearer test-token",
+        );
 
         // The function should not panic and handle lowercase authorization
         let result = exporter_from_otel_env();
@@ -572,7 +589,10 @@ mod tests {
     #[serial]
     fn test_exporter_from_otel_env_missing_endpoint() {
         // Set only headers, no endpoint
-        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer test-token");
+        env::set_var(
+            "OTEL_EXPORTER_OTLP_HEADERS",
+            "Authorization=Bearer test-token",
+        );
 
         // Should fail with MissingEnvironmentVariable error
         let result = exporter_from_otel_env();
@@ -604,7 +624,10 @@ mod tests {
         env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
         env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
         env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://otel.test.com");
-        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer otel-token");
+        env::set_var(
+            "OTEL_EXPORTER_OTLP_HEADERS",
+            "Authorization=Bearer otel-token",
+        );
 
         // The function should not panic and return a result
         // In tests, this will fail with OtlpExporter error due to missing HTTP client
@@ -624,7 +647,10 @@ mod tests {
     fn test_exporter_from_env_otel_fallback() {
         // Set only OTEL variables (no Langfuse variables)
         env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://otel.test.com");
-        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer otel-token");
+        env::set_var(
+            "OTEL_EXPORTER_OTLP_HEADERS",
+            "Authorization=Bearer otel-token",
+        );
 
         // The function should not panic and return a result
         // In tests, this will fail with OtlpExporter error due to missing HTTP client
@@ -640,40 +666,40 @@ mod tests {
     #[serial]
     fn test_timeout_and_compression_env_vars() {
         // Test that timeout and compression env vars are considered in all functions
-        
+
         // Test with exporter_from_langfuse_env
         env::set_var("LANGFUSE_HOST", "https://test.com");
         env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
         env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
         env::set_var("OTEL_EXPORTER_OTLP_TIMEOUT", "5000");
         env::set_var("OTEL_EXPORTER_OTLP_COMPRESSION", "gzip");
-        
+
         let result = exporter_from_langfuse_env();
         assert!(matches!(result, Err(Error::OtlpExporter(_))));
-        
+
         // Clean up for next test
         env::remove_var("LANGFUSE_HOST");
         env::remove_var("LANGFUSE_PUBLIC_KEY");
         env::remove_var("LANGFUSE_SECRET_KEY");
-        
+
         // Test with exporter_from_otel_env
         env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://test.com");
         env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer test");
-        
+
         let result = exporter_from_otel_env();
         assert!(matches!(result, Err(Error::OtlpExporter(_))));
-        
+
         // Clean up for next test
         env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
         env::remove_var("OTEL_EXPORTER_OTLP_HEADERS");
-        
+
         // Test with exporter_from_env
         env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
         env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
-        
+
         let result = exporter_from_env();
         assert!(matches!(result, Err(Error::OtlpExporter(_))));
-        
+
         // Clean up
         env::remove_var("LANGFUSE_PUBLIC_KEY");
         env::remove_var("LANGFUSE_SECRET_KEY");

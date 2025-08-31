@@ -79,13 +79,27 @@ When asked to make changes:
 
 ## Testing Locally Before Creating PR
 
-Always test locally before creating a PR:
+**IMPORTANT: Always run CI checks before committing and pushing!** This speeds up CI checks and avoids ping-pong due to formatting issues.
+
+Run these checks in order before every commit:
 ```bash
-cargo fmt --all -- --check
+# 1. Format the code
+cargo fmt
+
+# 2. Run linter
 cargo clippy --all-targets --all-features -- -D warnings
+
+# 3. Run tests
 cargo test --all-features
+
+# 4. Check documentation
 cargo doc --no-deps --all-features
 RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
+```
+
+Or run all checks in one command:
+```bash
+cargo fmt && cargo clippy --all-targets --all-features -- -D warnings && cargo test --all-features && cargo doc --no-deps --all-features
 ```
 
 ## Remember
