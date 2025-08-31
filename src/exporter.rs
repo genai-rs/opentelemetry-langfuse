@@ -126,7 +126,7 @@ impl ExporterBuilder {
     ///
     /// Also supports:
     /// - OTEL_EXPORTER_OTLP_TIMEOUT: Timeout in milliseconds
-    /// - OTEL_EXPORTER_OTLP_COMPRESSION: Compression algorithm (gzip or none)
+    /// - OTEL_EXPORTER_OTLP_COMPRESSION: Read but not applied (HTTP transport doesn't support compression)
     pub fn from_env(mut self) -> Result<Self> {
         // Check for Langfuse-specific endpoint first (may use default)
         let langfuse_endpoint = endpoint::build_otlp_endpoint_from_env()?;
@@ -180,14 +180,9 @@ impl ExporterBuilder {
             }
         }
 
-        // Handle compression configuration
-        // Note: Compression env var is read for compatibility but not yet applied
-        // The opentelemetry-otlp HTTP exporter compression support is pending
-        if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
-            if compression.eq_ignore_ascii_case("gzip") {
-                // TODO: Apply compression when opentelemetry-otlp supports it
-            }
-        }
+        // Note: OTEL_EXPORTER_OTLP_COMPRESSION is read for compatibility but not applied
+        // as the HTTP transport doesn't support compression in opentelemetry-otlp 0.30
+        let _ = env::var(OTEL_EXPORTER_OTLP_COMPRESSION);
 
         Ok(self)
     }
@@ -291,7 +286,7 @@ impl Default for ExporterBuilder {
 ///
 /// Also supports standard OTEL configuration variables:
 /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
-/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (`gzip` or none)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Read but not applied (HTTP transport doesn't support compression)
 ///
 /// # Returns
 ///
@@ -323,14 +318,9 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
         }
     }
 
-    // Handle compression configuration
-    // Note: Compression env var is read for compatibility but not yet applied
-    // The opentelemetry-otlp HTTP exporter compression support is pending
-    if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
-        if compression.eq_ignore_ascii_case("gzip") {
-            // TODO: Apply compression when opentelemetry-otlp supports it
-        }
-    }
+    // Note: OTEL_EXPORTER_OTLP_COMPRESSION is read for compatibility but not applied
+    // as the HTTP transport doesn't support compression in opentelemetry-otlp 0.30
+    let _ = env::var(OTEL_EXPORTER_OTLP_COMPRESSION);
 
     builder.build()
 }
@@ -354,7 +344,7 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
 ///
 /// ### Additional Configuration
 /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
-/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (read but not yet applied, pending opentelemetry-otlp support)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Read but not applied (HTTP transport doesn't support compression)
 ///
 /// ## Langfuse Configuration
 ///
@@ -429,14 +419,9 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
         }
     }
 
-    // Handle compression configuration
-    // Note: Compression env var is read for compatibility but not yet applied
-    // The opentelemetry-otlp HTTP exporter compression support is pending
-    if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
-        if compression.eq_ignore_ascii_case("gzip") {
-            // TODO: Apply compression when opentelemetry-otlp supports it
-        }
-    }
+    // Note: OTEL_EXPORTER_OTLP_COMPRESSION is read for compatibility but not applied
+    // as the HTTP transport doesn't support compression in opentelemetry-otlp 0.30
+    let _ = env::var(OTEL_EXPORTER_OTLP_COMPRESSION);
 
     builder.build()
 }
@@ -461,7 +446,7 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
 ///
 /// ### Additional Configuration:
 /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
-/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (`gzip` or none)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (`gzip`, `zstd`, or none)
 ///
 /// ## Usage Recommendations
 ///
