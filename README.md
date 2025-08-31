@@ -51,18 +51,25 @@ global::set_tracer_provider(provider);
 
 ## Configuration
 
-The exporter can be configured using environment variables. It supports both Langfuse-specific and standard OpenTelemetry variables:
+The exporter can be configured using environment variables. Langfuse-specific variables take precedence over standard OpenTelemetry variables:
 
-### Langfuse Variables
+### Langfuse Variables (Recommended)
 ```bash
-LANGFUSE_PUBLIC_KEY=pk-lf-...              # Required: Your public key
-LANGFUSE_SECRET_KEY=sk-lf-...              # Required: Your secret key
+LANGFUSE_PUBLIC_KEY=pk-lf-...              # Your public key
+LANGFUSE_SECRET_KEY=sk-lf-...              # Your secret key
 LANGFUSE_HOST=https://cloud.langfuse.com   # Optional: Defaults to cloud instance
 ```
 
-### Standard OpenTelemetry Variables (Alternative)
+### Standard OpenTelemetry Variables (Fallback)
+If Langfuse-specific variables are not set, the exporter will check for standard OTEL variables:
+
 ```bash
+# For endpoint (used only if LANGFUSE_HOST is not set)
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+# or
+OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public  # /v1/traces will be appended
+
+# For authentication (used only if LANGFUSE_PUBLIC_KEY/SECRET_KEY are not set)
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64_encoded_credentials>"
 ```
 
