@@ -28,10 +28,16 @@ unescaped_backticks = "warn"
 
 [dependencies]
 opentelemetry = { version = "0.30", features = ["trace"] }
-opentelemetry_sdk = { version = "0.30", features = ["rt-tokio", "trace"] }
+opentelemetry_sdk = { version = "0.30", features = ["rt-tokio", "trace", "testing"] }
 opentelemetry-otlp = { version = "0.30", features = ["tokio", "http-proto", "reqwest-client"] }
+opentelemetry-semantic-conventions = "0.30"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 base64 = "0.22"
 thiserror = "1.0"
+tokio = { version = "1.41", features = ["sync"] }
+tracing = "0.1"
+futures-util = "0.3"
 
 [dev-dependencies]
 tokio = { version = "1.41", features = ["rt-multi-thread", "macros", "time"] }
@@ -41,6 +47,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = "0.4"
 serial_test = "3.0"
 langfuse-ergonomic = "0.2"
+uuid = { version = "1.0", features = ["v4"] }
 
 [features]
-default = []
+default = ["tokio"]
+tokio = ["opentelemetry_sdk/rt-tokio", "tokio/rt"]
