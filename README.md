@@ -8,6 +8,8 @@
 
 OpenTelemetry exporter for [Langfuse](https://langfuse.com), the open-source LLM observability platform.
 
+This crate provides a configured OTLP exporter that sends OpenTelemetry traces to Langfuse. For more information about OpenTelemetry support in Langfuse, see the [official Langfuse OpenTelemetry documentation](https://langfuse.com/integrations/native/opentelemetry).
+
 ## Features
 
 - 🎯 **Focused** - Provides a configured OTLP exporter specifically for Langfuse
@@ -89,8 +91,9 @@ Licensed under either of:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## Links
+## Resources
 
+- [Langfuse OpenTelemetry Integration Guide](https://langfuse.com/integrations/native/opentelemetry)
 - [Langfuse Documentation](https://langfuse.com/docs)
 - [OpenTelemetry Rust](https://github.com/open-telemetry/opentelemetry-rust)
-- [API Reference](https://api.reference.langfuse.com)
+- [Langfuse API Reference](https://api.reference.langfuse.com)
