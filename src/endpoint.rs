@@ -5,7 +5,7 @@ use std::env;
 
 /// Builds the Langfuse OTLP endpoint URL by appending the API path.
 ///
-/// This function takes a base URL and appends "/api/public/otel" to create
+/// This function takes a base URL and appends "/api/public/otel/v1/traces" to create
 /// the full OTLP endpoint URL for Langfuse.
 ///
 /// # Arguments
@@ -22,17 +22,17 @@ use std::env;
 /// use opentelemetry_langfuse::endpoint::build_otlp_endpoint;
 ///
 /// let endpoint = build_otlp_endpoint("https://cloud.langfuse.com");
-/// assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
+/// assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel/v1/traces");
 /// ```
 pub fn build_otlp_endpoint(base_url: &str) -> String {
     let url = base_url.trim_end_matches('/');
-    format!("{}/api/public/otel", url)
+    format!("{}/api/public/otel/v1/traces", url)
 }
 
 /// Builds the Langfuse OTLP endpoint URL from environment variable.
 ///
 /// This function reads the LANGFUSE_HOST environment variable and creates
-/// the complete OTLP endpoint URL by appending "/api/public/otel".
+/// the complete OTLP endpoint URL by appending "/api/public/otel/v1/traces".
 /// If LANGFUSE_HOST is not set, defaults to the cloud instance.
 ///
 /// # Returns
@@ -62,15 +62,24 @@ mod tests {
     fn test_build_otlp_endpoint() {
         // Test with URL without trailing slash
         let endpoint = build_otlp_endpoint("https://cloud.langfuse.com");
-        assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
+        assert_eq!(
+            endpoint,
+            "https://cloud.langfuse.com/api/public/otel/v1/traces"
+        );
 
         // Test with URL with trailing slash
         let endpoint = build_otlp_endpoint("https://cloud.langfuse.com/");
-        assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
+        assert_eq!(
+            endpoint,
+            "https://cloud.langfuse.com/api/public/otel/v1/traces"
+        );
 
         // Test with US region URL
         let endpoint = build_otlp_endpoint("https://us.cloud.langfuse.com");
-        assert_eq!(endpoint, "https://us.cloud.langfuse.com/api/public/otel");
+        assert_eq!(
+            endpoint,
+            "https://us.cloud.langfuse.com/api/public/otel/v1/traces"
+        );
     }
 
     #[test]
@@ -78,12 +87,18 @@ mod tests {
     fn test_build_otlp_endpoint_from_env() {
         env::set_var(ENV_LANGFUSE_HOST, "https://cloud.langfuse.com");
         let endpoint = build_otlp_endpoint_from_env().unwrap();
-        assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
+        assert_eq!(
+            endpoint,
+            "https://cloud.langfuse.com/api/public/otel/v1/traces"
+        );
 
         // Test with trailing slash in env var
         env::set_var(ENV_LANGFUSE_HOST, "https://cloud.langfuse.com/");
         let endpoint = build_otlp_endpoint_from_env().unwrap();
-        assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
+        assert_eq!(
+            endpoint,
+            "https://cloud.langfuse.com/api/public/otel/v1/traces"
+        );
 
         // Cleanup
         env::remove_var(ENV_LANGFUSE_HOST);
@@ -97,7 +112,7 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            "https://cloud.langfuse.com/api/public/otel"
+            "https://cloud.langfuse.com/api/public/otel/v1/traces"
         );
     }
 }
