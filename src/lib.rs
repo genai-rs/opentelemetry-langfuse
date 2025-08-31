@@ -33,6 +33,7 @@
 //! - Automatic OTLP/HTTP export to Langfuse
 
 pub mod auth;
+pub mod constants;
 pub mod endpoint;
 pub mod error;
 pub mod tracer;

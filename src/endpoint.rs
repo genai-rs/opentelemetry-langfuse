@@ -1,5 +1,6 @@
 //! Endpoint URL utilities for Langfuse.
 
+use crate::constants::ENV_LANGFUSE_HOST;
 use std::env;
 
 /// Builds the Langfuse OTLP endpoint URL by appending the API path.
@@ -51,8 +52,8 @@ pub fn build_otlp_endpoint(base_url: &str) -> String {
 /// let endpoint = build_otlp_endpoint_from_env().unwrap();
 /// ```
 pub fn build_otlp_endpoint_from_env() -> Result<String, crate::Error> {
-    let base_url = env::var("LANGFUSE_HOST")
-        .map_err(|_| crate::Error::MissingEnvironmentVariable("LANGFUSE_HOST"))?;
+    let base_url = env::var(ENV_LANGFUSE_HOST)
+        .map_err(|_| crate::Error::MissingEnvironmentVariable(ENV_LANGFUSE_HOST))?;
 
     Ok(build_otlp_endpoint(&base_url))
 }
@@ -80,28 +81,28 @@ mod tests {
     #[test]
     #[serial]
     fn test_build_otlp_endpoint_from_env() {
-        env::set_var("LANGFUSE_HOST", "https://cloud.langfuse.com");
+        env::set_var(ENV_LANGFUSE_HOST, "https://cloud.langfuse.com");
         let endpoint = build_otlp_endpoint_from_env().unwrap();
         assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
 
         // Test with trailing slash in env var
-        env::set_var("LANGFUSE_HOST", "https://cloud.langfuse.com/");
+        env::set_var(ENV_LANGFUSE_HOST, "https://cloud.langfuse.com/");
         let endpoint = build_otlp_endpoint_from_env().unwrap();
         assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
         
         // Cleanup
-        env::remove_var("LANGFUSE_HOST");
+        env::remove_var(ENV_LANGFUSE_HOST);
     }
 
     #[test]
     #[serial]
     fn test_missing_langfuse_host() {
-        env::remove_var("LANGFUSE_HOST");
+        env::remove_var(ENV_LANGFUSE_HOST);
         let result = build_otlp_endpoint_from_env();
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            crate::Error::MissingEnvironmentVariable("LANGFUSE_HOST")
+            crate::Error::MissingEnvironmentVariable(ENV_LANGFUSE_HOST)
         ));
     }
 }
