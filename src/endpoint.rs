@@ -60,6 +60,7 @@ pub fn build_otlp_endpoint_from_env() -> Result<String, crate::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn test_build_otlp_endpoint() {
@@ -77,6 +78,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_build_otlp_endpoint_from_env() {
         env::set_var("LANGFUSE_HOST", "https://cloud.langfuse.com");
         let endpoint = build_otlp_endpoint_from_env().unwrap();
@@ -86,9 +88,13 @@ mod tests {
         env::set_var("LANGFUSE_HOST", "https://cloud.langfuse.com/");
         let endpoint = build_otlp_endpoint_from_env().unwrap();
         assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
+        
+        // Cleanup
+        env::remove_var("LANGFUSE_HOST");
     }
 
     #[test]
+    #[serial]
     fn test_missing_langfuse_host() {
         env::remove_var("LANGFUSE_HOST");
         let result = build_otlp_endpoint_from_env();

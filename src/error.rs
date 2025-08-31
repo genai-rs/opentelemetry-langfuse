@@ -9,6 +9,10 @@ pub enum Error {
     #[error("Missing environment variable: {0}")]
     MissingEnvironmentVariable(&'static str),
 
+    /// Required configuration is missing.
+    #[error("Missing configuration: {0}")]
+    MissingConfiguration(&'static str),
+
     /// OpenTelemetry error.
     #[error("OpenTelemetry error: {0}")]
     OpenTelemetry(#[from] opentelemetry::trace::TraceError),

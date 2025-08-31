@@ -70,6 +70,7 @@ pub fn build_auth_header_from_env() -> Result<String, crate::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn test_build_auth_header() {
@@ -79,6 +80,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_build_auth_header_from_env() {
         env::set_var("LANGFUSE_PUBLIC_KEY", "pk-env-test");
         env::set_var("LANGFUSE_SECRET_KEY", "sk-env-secret");
@@ -86,9 +88,14 @@ mod tests {
         let auth = build_auth_header_from_env().unwrap();
         let expected = format!("Basic {}", STANDARD.encode("pk-env-test:sk-env-secret"));
         assert_eq!(auth, expected);
+        
+        // Cleanup
+        env::remove_var("LANGFUSE_PUBLIC_KEY");
+        env::remove_var("LANGFUSE_SECRET_KEY");
     }
 
     #[test]
+    #[serial]
     fn test_missing_env_keys() {
         env::remove_var("LANGFUSE_PUBLIC_KEY");
         env::remove_var("LANGFUSE_SECRET_KEY");
