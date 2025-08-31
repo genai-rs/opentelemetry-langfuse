@@ -125,8 +125,8 @@ impl ExporterBuilder {
     /// 3. OTEL_EXPORTER_OTLP_HEADERS
     ///
     /// Also supports:
-    /// - OTEL_EXPORTER_OTLP_TIMEOUT: Timeout in milliseconds
-    /// - OTEL_EXPORTER_OTLP_COMPRESSION: Read but not applied (HTTP transport doesn't support compression)
+    /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds
+    /// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Read but not applied (HTTP transport doesn't support compression)
     pub fn from_env(mut self) -> Result<Self> {
         // Check for Langfuse-specific endpoint first (may use default)
         let langfuse_endpoint = endpoint::build_otlp_endpoint_from_env()?;
@@ -180,9 +180,8 @@ impl ExporterBuilder {
             }
         }
 
-        // Note: OTEL_EXPORTER_OTLP_COMPRESSION is read for compatibility but not applied
-        // as the HTTP transport doesn't support compression in opentelemetry-otlp 0.30
-        let _ = env::var(OTEL_EXPORTER_OTLP_COMPRESSION);
+        // Note: OTEL_EXPORTER_OTLP_COMPRESSION would be read here for compression support,
+        // but the HTTP transport doesn't support compression in opentelemetry-otlp 0.30
 
         Ok(self)
     }
