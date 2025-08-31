@@ -5,7 +5,7 @@ use opentelemetry::global;
 use opentelemetry::trace::{Span, TraceContextExt, Tracer};
 use opentelemetry::KeyValue;
 use opentelemetry_langfuse::exporter_from_env;
-use opentelemetry_sdk::trace::TracerProvider;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use opentelemetry_sdk::Resource;
 use std::error::Error;
 use std::time::Duration;
@@ -24,12 +24,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let exporter = exporter_from_env()?;
 
     // Create tracer provider with the Langfuse exporter
-    let provider = TracerProvider::builder()
-        .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
-        .with_resource(Resource::new(vec![
+    let provider = SdkTracerProvider::builder()
+        .with_batch_exporter(exporter)
+        .with_resource(Resource::builder().with_attributes(vec![
             KeyValue::new("service.name", "opentelemetry-langfuse-example"),
             KeyValue::new("service.version", "0.1.0"),
-        ]))
+        ]).build())
         .build();
 
     // Set as global provider
@@ -100,8 +100,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Flushing traces...");
     sleep(Duration::from_secs(2)).await;
 
-    // Shutdown the tracer provider
-    global::shutdown_tracer_provider();
+    // Provider will be shutdown when it goes out of scope
+    // For clean shutdown, we'll just wait a bit more
     sleep(Duration::from_secs(1)).await;
 
     // Verify traces were sent to Langfuse
