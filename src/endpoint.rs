@@ -1,6 +1,6 @@
 //! Endpoint URL utilities for Langfuse.
 
-use crate::constants::ENV_LANGFUSE_HOST;
+use crate::constants::{DEFAULT_LANGFUSE_HOST, ENV_LANGFUSE_HOST};
 use std::env;
 
 /// Builds the Langfuse OTLP endpoint URL by appending the API path.
@@ -33,28 +33,22 @@ pub fn build_otlp_endpoint(base_url: &str) -> String {
 ///
 /// This function reads the LANGFUSE_HOST environment variable and creates
 /// the complete OTLP endpoint URL by appending "/api/public/otel".
+/// If LANGFUSE_HOST is not set, defaults to the cloud instance.
 ///
 /// # Returns
 ///
-/// Returns a Result containing the complete OTLP endpoint URL,
-/// or an error if the LANGFUSE_HOST environment variable is missing.
-///
-/// # Errors
-///
-/// Returns an error if the LANGFUSE_HOST environment variable is not set.
+/// Returns the complete OTLP endpoint URL.
 ///
 /// # Example
 ///
 /// ```no_run
 /// use opentelemetry_langfuse::endpoint::build_otlp_endpoint_from_env;
 ///
-/// // Requires LANGFUSE_HOST env var
+/// // Uses LANGFUSE_HOST env var if set, otherwise defaults to cloud
 /// let endpoint = build_otlp_endpoint_from_env().unwrap();
 /// ```
 pub fn build_otlp_endpoint_from_env() -> Result<String, crate::Error> {
-    let base_url = env::var(ENV_LANGFUSE_HOST)
-        .map_err(|_| crate::Error::MissingEnvironmentVariable(ENV_LANGFUSE_HOST))?;
-
+    let base_url = env::var(ENV_LANGFUSE_HOST).unwrap_or_else(|_| DEFAULT_LANGFUSE_HOST.to_string());
     Ok(build_otlp_endpoint(&base_url))
 }
 
@@ -96,13 +90,10 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_missing_langfuse_host() {
+    fn test_default_langfuse_host() {
         env::remove_var(ENV_LANGFUSE_HOST);
         let result = build_otlp_endpoint_from_env();
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            crate::Error::MissingEnvironmentVariable(ENV_LANGFUSE_HOST)
-        ));
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "https://cloud.langfuse.com/api/public/otel");
     }
 }

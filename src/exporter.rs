@@ -6,9 +6,10 @@
 //! See the [Langfuse OpenTelemetry documentation](https://langfuse.com/integrations/native/opentelemetry)
 //! for more details about the integration.
 
-use crate::{auth, endpoint, Error, Result};
+use crate::{auth, constants::*, endpoint, Error, Result};
 use opentelemetry_otlp::{SpanExporter, WithExportConfig, WithHttpConfig};
 use std::collections::HashMap;
+use std::env;
 use std::time::Duration;
 
 /// Builder for configuring a Langfuse OTLP exporter.
@@ -59,6 +60,18 @@ impl ExporterBuilder {
     pub fn with_credentials(mut self, public_key: &str, secret_key: &str) -> Self {
         self.auth_header = Some(auth::build_auth_header(public_key, secret_key));
         self
+    }
+
+    /// Sets the Basic authentication credentials.
+    ///
+    /// This is an alias for `with_credentials` that better matches HTTP terminology.
+    ///
+    /// # Arguments
+    ///
+    /// * `username` - The username (Langfuse public key)
+    /// * `password` - The password (Langfuse secret key)
+    pub fn with_basic_auth(self, username: &str, password: &str) -> Self {
+        self.with_credentials(username, password)
     }
 
     /// Sets the Langfuse host URL.
@@ -113,12 +126,48 @@ impl ExporterBuilder {
 
     /// Loads configuration from environment variables.
     ///
-    /// This method reads:
-    /// - LANGFUSE_HOST for the endpoint
+    /// This method reads (in order of precedence):
+    /// - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT for endpoint
+    /// - LANGFUSE_HOST for the endpoint (with /api/public/otel appended)
+    /// - OTEL_EXPORTER_OTLP_TRACES_HEADERS or OTEL_EXPORTER_OTLP_HEADERS for headers
     /// - LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY for authentication
     pub fn from_env(mut self) -> Result<Self> {
-        self.endpoint = Some(endpoint::build_otlp_endpoint_from_env()?);
-        self.auth_header = Some(auth::build_auth_header_from_env()?);
+        // Try standard OTEL endpoint first
+        if let Ok(endpoint) = env::var(ENV_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT) {
+            self.endpoint = Some(endpoint);
+        } else if let Ok(endpoint) = env::var(ENV_OTEL_EXPORTER_OTLP_ENDPOINT) {
+            // OTEL_EXPORTER_OTLP_ENDPOINT needs /v1/traces appended
+            self.endpoint = Some(format!("{}/v1/traces", endpoint.trim_end_matches('/')));
+        } else {
+            // Fall back to Langfuse-specific endpoint
+            self.endpoint = Some(endpoint::build_otlp_endpoint_from_env()?);
+        }
+
+        // Try standard OTEL headers first
+        if let Ok(headers) = env::var(ENV_OTEL_EXPORTER_OTLP_TRACES_HEADERS)
+            .or_else(|_| env::var(ENV_OTEL_EXPORTER_OTLP_HEADERS))
+        {
+            // Parse OTEL headers format: "key1=value1,key2=value2"
+            for header_pair in headers.split(',') {
+                if let Some((key, value)) = header_pair.split_once('=') {
+                    self.additional_headers.insert(
+                        key.trim().to_string(),
+                        value.trim().to_string(),
+                    );
+                }
+            }
+        }
+
+        // Try to get Langfuse credentials for auth header
+        // Only set if we don't already have an Authorization header from OTEL headers
+        if !self.additional_headers.contains_key("Authorization") {
+            // This is optional - if Langfuse credentials aren't set, that's ok
+            // The build() method will check if we have auth configured
+            if let Ok(auth) = auth::build_auth_header_from_env() {
+                self.auth_header = Some(auth);
+            }
+        }
+
         Ok(self)
     }
 
@@ -131,16 +180,21 @@ impl ExporterBuilder {
         let endpoint = self
             .endpoint
             .ok_or(Error::MissingConfiguration("endpoint"))?;
-        let auth_header = self
-            .auth_header
-            .ok_or(Error::MissingConfiguration("auth_header"))?;
 
-        // Create headers for authentication
+        // Create headers map
         let mut headers = HashMap::new();
-        headers.insert("Authorization".to_string(), auth_header);
         
-        // Add any additional headers
+        // Add additional headers first (may include Authorization from OTEL env)
         headers.extend(self.additional_headers);
+        
+        // If no Authorization header yet, add the auth_header
+        if !headers.contains_key("Authorization") {
+            if let Some(auth_header) = self.auth_header {
+                headers.insert("Authorization".to_string(), auth_header);
+            } else {
+                return Err(Error::MissingConfiguration("Authorization header or Langfuse credentials"));
+            }
+        }
 
         // Build HTTP config
         let mut http_config = SpanExporter::builder()
@@ -166,8 +220,12 @@ impl Default for ExporterBuilder {
 
 /// Creates a Langfuse OTLP exporter using environment variables.
 ///
-/// This is a convenience function that reads configuration from environment variables:
-/// - LANGFUSE_HOST: The base URL of your Langfuse instance
+/// This is a convenience function that reads configuration from environment variables.
+///
+/// Supports both standard OpenTelemetry and Langfuse-specific variables:
+/// - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT: OTLP endpoint URL
+/// - OTEL_EXPORTER_OTLP_TRACES_HEADERS or OTEL_EXPORTER_OTLP_HEADERS: Additional headers
+/// - LANGFUSE_HOST: The base URL of your Langfuse instance (defaults to cloud.langfuse.com)
 /// - LANGFUSE_PUBLIC_KEY: Your Langfuse public key
 /// - LANGFUSE_SECRET_KEY: Your Langfuse secret key
 ///

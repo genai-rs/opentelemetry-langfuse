@@ -51,12 +51,19 @@ global::set_tracer_provider(provider);
 
 ## Configuration
 
-Set these environment variables:
+The exporter can be configured using environment variables. It supports both Langfuse-specific and standard OpenTelemetry variables:
 
+### Langfuse Variables
 ```bash
-LANGFUSE_PUBLIC_KEY=pk-lf-...
-LANGFUSE_SECRET_KEY=sk-lf-...
-LANGFUSE_HOST=https://cloud.langfuse.com  # Optional, defaults to cloud instance
+LANGFUSE_PUBLIC_KEY=pk-lf-...              # Required: Your public key
+LANGFUSE_SECRET_KEY=sk-lf-...              # Required: Your secret key
+LANGFUSE_HOST=https://cloud.langfuse.com   # Optional: Defaults to cloud instance
+```
+
+### Standard OpenTelemetry Variables (Alternative)
+```bash
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64_encoded_credentials>"
 ```
 
 ## Manual Configuration
@@ -69,7 +76,7 @@ use std::time::Duration;
 
 let exporter = ExporterBuilder::new()
     .with_host("https://cloud.langfuse.com")
-    .with_credentials("pk-lf-...", "sk-lf-...")
+    .with_basic_auth("pk-lf-...", "sk-lf-...")  // or with_credentials()
     .with_timeout(Duration::from_secs(10))
     .build()?;
 ```
