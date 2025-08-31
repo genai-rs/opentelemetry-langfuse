@@ -130,7 +130,7 @@ impl ExporterBuilder {
     /// This method reads (in order of precedence):
     ///
     /// For endpoint:
-    /// 1. LANGFUSE_HOST (with /api/public/otel appended)
+    /// 1. LANGFUSE_HOST (with /api/public/otel/v1/traces appended)
     /// 2. OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
     /// 3. OTEL_EXPORTER_OTLP_ENDPOINT (with /v1/traces appended)
     /// 4. Default to cloud.langfuse.com
@@ -300,7 +300,7 @@ impl Default for ExporterBuilder {
 /// - `LANGFUSE_PUBLIC_KEY`: Your Langfuse public key (required)
 /// - `LANGFUSE_SECRET_KEY`: Your Langfuse secret key (required)
 ///
-/// The OTLP endpoint will be constructed as `{LANGFUSE_HOST}/api/public/otel`.
+/// The OTLP endpoint will be constructed as `{LANGFUSE_HOST}/api/public/otel/v1/traces`.
 ///
 /// Also supports standard OTEL configuration variables:
 /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
@@ -366,7 +366,7 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
 /// ## Langfuse Configuration
 ///
 /// For Langfuse, use one of these endpoint configurations:
-/// - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=<https://cloud.langfuse.com/api/public/otel>`
+/// - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=<https://cloud.langfuse.com/api/public/otel/v1/traces>`
 /// - `OTEL_EXPORTER_OTLP_ENDPOINT=<https://cloud.langfuse.com/api/public/otel>` (creates `/api/public/otel/v1/traces`)
 ///
 /// ⚠️ Do NOT use `OTEL_EXPORTER_OTLP_ENDPOINT=<https://cloud.langfuse.com/api/public>` as this would
@@ -450,10 +450,10 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
 /// ## Environment Variable Priority
 ///
 /// ### For endpoint (in order of precedence):
-/// 1. `LANGFUSE_HOST`: The base URL of your Langfuse instance (appends `/api/public/otel`)
+/// 1. `LANGFUSE_HOST`: The base URL of your Langfuse instance (appends `/api/public/otel/v1/traces`)
 /// 2. `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`: Direct OTLP traces endpoint URL
 /// 3. `OTEL_EXPORTER_OTLP_ENDPOINT`: Base OTLP endpoint (appends `/v1/traces`)
-/// 4. **Default**: `<https://cloud.langfuse.com/api/public/otel>` (when no endpoint variables are set)
+/// 4. **Default**: `<https://cloud.langfuse.com/api/public/otel/v1/traces>` (when no endpoint variables are set)
 ///
 /// ### For authentication (in order of precedence):
 /// 1. `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`: Your Langfuse credentials
