@@ -3,6 +3,9 @@
 //! This crate provides a configured OTLP exporter for sending OpenTelemetry
 //! traces to Langfuse for LLM observability and monitoring.
 //!
+//! For detailed information about OpenTelemetry support in Langfuse, see the
+//! [official documentation](https://langfuse.com/integrations/native/opentelemetry).
+//!
 //! # Quick Start
 //!
 //! ```no_run
