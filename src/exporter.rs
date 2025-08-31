@@ -127,44 +127,60 @@ impl ExporterBuilder {
     /// Loads configuration from environment variables.
     ///
     /// This method reads (in order of precedence):
-    /// - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT for endpoint
-    /// - LANGFUSE_HOST for the endpoint (with /api/public/otel appended)
-    /// - OTEL_EXPORTER_OTLP_TRACES_HEADERS or OTEL_EXPORTER_OTLP_HEADERS for headers
-    /// - LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY for authentication
+    /// 
+    /// For endpoint:
+    /// 1. LANGFUSE_HOST (with /api/public/otel appended)
+    /// 2. OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+    /// 3. OTEL_EXPORTER_OTLP_ENDPOINT (with /v1/traces appended)
+    /// 4. Default to cloud.langfuse.com
+    ///
+    /// For authentication:
+    /// 1. LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY
+    /// 2. OTEL_EXPORTER_OTLP_TRACES_HEADERS
+    /// 3. OTEL_EXPORTER_OTLP_HEADERS
     pub fn from_env(mut self) -> Result<Self> {
-        // Try standard OTEL endpoint first
-        if let Ok(endpoint) = env::var(ENV_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT) {
-            self.endpoint = Some(endpoint);
-        } else if let Ok(endpoint) = env::var(ENV_OTEL_EXPORTER_OTLP_ENDPOINT) {
-            // OTEL_EXPORTER_OTLP_ENDPOINT needs /v1/traces appended
-            self.endpoint = Some(format!("{}/v1/traces", endpoint.trim_end_matches('/')));
-        } else {
-            // Fall back to Langfuse-specific endpoint
-            self.endpoint = Some(endpoint::build_otlp_endpoint_from_env()?);
-        }
-
-        // Try standard OTEL headers first
-        if let Ok(headers) = env::var(ENV_OTEL_EXPORTER_OTLP_TRACES_HEADERS)
-            .or_else(|_| env::var(ENV_OTEL_EXPORTER_OTLP_HEADERS))
-        {
-            // Parse OTEL headers format: "key1=value1,key2=value2"
-            for header_pair in headers.split(',') {
-                if let Some((key, value)) = header_pair.split_once('=') {
-                    self.additional_headers.insert(
-                        key.trim().to_string(),
-                        value.trim().to_string(),
-                    );
-                }
+        // Check for Langfuse-specific endpoint first (may use default)
+        let langfuse_endpoint = endpoint::build_otlp_endpoint_from_env()?;
+        
+        // Only use OTEL endpoints if LANGFUSE_HOST was not explicitly set
+        if env::var(ENV_LANGFUSE_HOST).is_err() {
+            // No LANGFUSE_HOST set, check for OTEL endpoints
+            if let Ok(endpoint) = env::var(ENV_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT) {
+                self.endpoint = Some(endpoint);
+            } else if let Ok(endpoint) = env::var(ENV_OTEL_EXPORTER_OTLP_ENDPOINT) {
+                // OTEL_EXPORTER_OTLP_ENDPOINT needs /v1/traces appended
+                self.endpoint = Some(format!("{}/v1/traces", endpoint.trim_end_matches('/')));
+            } else {
+                // Use the Langfuse endpoint (which defaults to cloud)
+                self.endpoint = Some(langfuse_endpoint);
             }
+        } else {
+            // LANGFUSE_HOST was explicitly set, use it
+            self.endpoint = Some(langfuse_endpoint);
         }
 
-        // Try to get Langfuse credentials for auth header
-        // Only set if we don't already have an Authorization header from OTEL headers
-        if !self.additional_headers.contains_key("Authorization") {
-            // This is optional - if Langfuse credentials aren't set, that's ok
-            // The build() method will check if we have auth configured
-            if let Ok(auth) = auth::build_auth_header_from_env() {
-                self.auth_header = Some(auth);
+        // Try Langfuse credentials first
+        if let Ok(auth) = auth::build_auth_header_from_env() {
+            self.auth_header = Some(auth);
+        } else {
+            // Fall back to OTEL headers if Langfuse credentials not available
+            if let Ok(headers) = env::var(ENV_OTEL_EXPORTER_OTLP_TRACES_HEADERS)
+                .or_else(|_| env::var(ENV_OTEL_EXPORTER_OTLP_HEADERS))
+            {
+                // Parse OTEL headers format: "key1=value1,key2=value2"
+                for header_pair in headers.split(',') {
+                    if let Some((key, value)) = header_pair.split_once('=') {
+                        let key = key.trim().to_string();
+                        let value = value.trim().to_string();
+                        
+                        // Check if this is an Authorization header
+                        if key.eq_ignore_ascii_case("authorization") && self.auth_header.is_none() {
+                            self.auth_header = Some(value);
+                        } else {
+                            self.additional_headers.insert(key, value);
+                        }
+                    }
+                }
             }
         }
 
@@ -222,12 +238,18 @@ impl Default for ExporterBuilder {
 ///
 /// This is a convenience function that reads configuration from environment variables.
 ///
-/// Supports both standard OpenTelemetry and Langfuse-specific variables:
-/// - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT: OTLP endpoint URL
-/// - OTEL_EXPORTER_OTLP_TRACES_HEADERS or OTEL_EXPORTER_OTLP_HEADERS: Additional headers
-/// - LANGFUSE_HOST: The base URL of your Langfuse instance (defaults to cloud.langfuse.com)
-/// - LANGFUSE_PUBLIC_KEY: Your Langfuse public key
-/// - LANGFUSE_SECRET_KEY: Your Langfuse secret key
+/// Langfuse-specific variables take precedence over standard OpenTelemetry variables:
+///
+/// For endpoint (in order of precedence):
+/// - LANGFUSE_HOST: The base URL of your Langfuse instance
+/// - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: Direct OTLP endpoint URL
+/// - OTEL_EXPORTER_OTLP_ENDPOINT: Base OTLP endpoint (will append /v1/traces)
+/// - Default: https://cloud.langfuse.com
+///
+/// For authentication (in order of precedence):
+/// - LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY: Your Langfuse credentials
+/// - OTEL_EXPORTER_OTLP_TRACES_HEADERS: Headers including Authorization
+/// - OTEL_EXPORTER_OTLP_HEADERS: Headers including Authorization
 ///
 /// # Returns
 ///
