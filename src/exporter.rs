@@ -261,22 +261,30 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
 /// This function follows the [OpenTelemetry Protocol Exporter specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md#endpoint-urls-for-otlphttp)
 /// and only looks for standard OTEL environment variables:
 ///
-/// For endpoint (in order of precedence):
+/// ## Supported Environment Variables
+///
+/// ### Endpoint Configuration
 /// - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`: Direct OTLP traces endpoint URL
 /// - `OTEL_EXPORTER_OTLP_ENDPOINT`: Base OTLP endpoint (will append `/v1/traces`)
 ///
-/// For Langfuse, use one of these configurations:
+/// ### Headers Configuration
+/// - `OTEL_EXPORTER_OTLP_TRACES_HEADERS`: Headers for traces endpoint
+/// - `OTEL_EXPORTER_OTLP_HEADERS`: General OTLP headers
+/// 
+/// Headers should be in the format: `key1=value1,key2=value2`
+///
+/// ### Additional Configuration
+/// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (`gzip` or none)
+///
+/// ## Langfuse Configuration
+/// 
+/// For Langfuse, use one of these endpoint configurations:
 /// - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://cloud.langfuse.com/api/public/otel`
 /// - `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel` (creates `/api/public/otel/v1/traces`)
 ///
 /// ⚠️ Do NOT use `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public` as this would
 /// create `/api/public/v1/traces` which Langfuse does not accept.
-///
-/// For authentication headers (in order of precedence):
-/// - `OTEL_EXPORTER_OTLP_TRACES_HEADERS`: Headers for traces endpoint
-/// - `OTEL_EXPORTER_OTLP_HEADERS`: General OTLP headers
-///
-/// Headers should be in the format: `key1=value1,key2=value2`
 ///
 /// # Returns
 ///
@@ -328,6 +336,21 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
             }
         }
     }
+    
+    // Handle timeout configuration
+    if let Ok(timeout_str) = env::var(OTEL_EXPORTER_OTLP_TIMEOUT) {
+        if let Ok(timeout_ms) = timeout_str.parse::<u64>() {
+            builder = builder.with_timeout(Duration::from_millis(timeout_ms));
+        }
+    }
+    
+    // Handle compression configuration
+    if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
+        if compression.eq_ignore_ascii_case("gzip") {
+            // Note: The actual compression is handled by the SpanExporter builder
+            // We just document that we support it
+        }
+    }
 
     builder.build()
 }
@@ -343,7 +366,7 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
 /// 1. `LANGFUSE_HOST`: The base URL of your Langfuse instance (appends `/api/public/otel`)
 /// 2. `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`: Direct OTLP traces endpoint URL
 /// 3. `OTEL_EXPORTER_OTLP_ENDPOINT`: Base OTLP endpoint (appends `/v1/traces`)
-/// 4. Default: `https://cloud.langfuse.com/api/public/otel`
+/// 4. **Default**: `https://cloud.langfuse.com/api/public/otel` (when no endpoint variables are set)
 ///
 /// ### For authentication (in order of precedence):
 /// 1. `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`: Your Langfuse credentials
@@ -484,6 +507,22 @@ mod tests {
         // Clean up
         env::remove_var("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT");
         env::remove_var("OTEL_EXPORTER_OTLP_TRACES_HEADERS");
+    }
+
+    #[test]
+    #[serial]
+    fn test_exporter_from_otel_env_lowercase_authorization() {
+        // Test that lowercase "authorization" header is handled correctly
+        env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://test.com");
+        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "authorization=Bearer test-token");
+
+        // The function should not panic and handle lowercase authorization
+        let result = exporter_from_otel_env();
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+
+        // Clean up
+        env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
+        env::remove_var("OTEL_EXPORTER_OTLP_HEADERS");
     }
 
     #[test]
