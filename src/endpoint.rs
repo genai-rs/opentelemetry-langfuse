@@ -25,7 +25,7 @@ use std::env;
 /// assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel/v1/traces");
 /// ```
 pub fn build_otlp_endpoint(base_url: &str) -> String {
-    let url = base_url.trim_end_matches('/');
+    let url = base_url.trim().trim_end_matches('/');
     format!("{}/api/public/otel/v1/traces", url)
 }
 
@@ -79,6 +79,20 @@ mod tests {
         assert_eq!(
             endpoint,
             "https://us.cloud.langfuse.com/api/public/otel/v1/traces"
+        );
+
+        // Test with URL with trailing spaces (from env vars)
+        let endpoint = build_otlp_endpoint("  https://cloud.langfuse.com  ");
+        assert_eq!(
+            endpoint,
+            "https://cloud.langfuse.com/api/public/otel/v1/traces"
+        );
+
+        // Test with URL with trailing slash and spaces
+        let endpoint = build_otlp_endpoint("  https://cloud.langfuse.com/  ");
+        assert_eq!(
+            endpoint,
+            "https://cloud.langfuse.com/api/public/otel/v1/traces"
         );
     }
 
