@@ -3,9 +3,11 @@
 use crate::{auth, endpoint, Error, Result};
 use opentelemetry::global;
 use opentelemetry_otlp::{WithExportConfig, WithHttpConfig};
+use opentelemetry_sdk::resource::{EnvResourceDetector, ResourceDetector};
 use opentelemetry_sdk::trace::TracerProvider;
 use opentelemetry_sdk::Resource;
 use std::collections::HashMap;
+use std::time::Duration;
 
 /// Builder for configuring a Langfuse tracer.
 pub struct TracerBuilder {
@@ -13,6 +15,9 @@ pub struct TracerBuilder {
     endpoint: Option<String>,
     auth_header: Option<String>,
     resource_attributes: Vec<opentelemetry::KeyValue>,
+    detect_resources: bool,
+    timeout: Option<Duration>,
+    additional_headers: HashMap<String, String>,
 }
 
 impl TracerBuilder {
@@ -27,6 +32,9 @@ impl TracerBuilder {
             endpoint: None,
             auth_header: None,
             resource_attributes: Vec::new(),
+            detect_resources: true,
+            timeout: None,
+            additional_headers: HashMap::new(),
         }
     }
 
@@ -86,6 +94,75 @@ impl TracerBuilder {
         self
     }
 
+    /// Adds multiple resource attributes.
+    ///
+    /// # Arguments
+    ///
+    /// * `attributes` - An iterator of key-value pairs
+    pub fn with_resource_attributes<I, K, V>(mut self, attributes: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<opentelemetry::Key>,
+        V: Into<opentelemetry::Value>,
+    {
+        self.resource_attributes.extend(
+            attributes
+                .into_iter()
+                .map(|(k, v)| opentelemetry::KeyValue::new(k, v)),
+        );
+        self
+    }
+
+    /// Disables automatic resource detection from environment.
+    ///
+    /// By default, resource attributes are detected from environment variables.
+    /// Call this method to disable automatic detection.
+    pub fn without_resource_detection(mut self) -> Self {
+        self.detect_resources = false;
+        self
+    }
+
+    /// Sets the HTTP timeout for the exporter.
+    ///
+    /// # Arguments
+    ///
+    /// * `timeout` - The timeout duration
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
+
+    /// Adds an additional HTTP header.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The header name
+    /// * `value` - The header value
+    pub fn with_header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.additional_headers.insert(name.into(), value.into());
+        self
+    }
+
+    /// Adds multiple HTTP headers.
+    ///
+    /// # Arguments
+    ///
+    /// * `headers` - An iterator of header name-value pairs
+    pub fn with_headers<I, K, V>(mut self, headers: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        self.additional_headers.extend(
+            headers
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into())),
+        );
+        self
+    }
+
     /// Loads configuration from environment variables.
     ///
     /// This method reads:
@@ -105,21 +182,31 @@ impl TracerBuilder {
     pub fn install(self) -> Result<TracerProvider> {
         let endpoint = self
             .endpoint
-            .ok_or(Error::MissingEnvironmentVariable("endpoint"))?;
+            .ok_or(Error::MissingConfiguration("endpoint"))?;
         let auth_header = self
             .auth_header
-            .ok_or(Error::MissingEnvironmentVariable("auth_header"))?;
+            .ok_or(Error::MissingConfiguration("auth_header"))?;
 
         // Create headers for authentication
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), auth_header);
+        
+        // Add any additional headers
+        headers.extend(self.additional_headers);
 
-        // Create OTLP exporter
-        let exporter = opentelemetry_otlp::SpanExporter::builder()
+        // Build HTTP config
+        let mut http_config = opentelemetry_otlp::SpanExporter::builder()
             .with_http()
             .with_endpoint(endpoint)
-            .with_headers(headers)
-            .build()?;
+            .with_headers(headers);
+
+        // Apply timeout if configured
+        if let Some(timeout) = self.timeout {
+            http_config = http_config.with_timeout(timeout);
+        }
+
+        // Create OTLP exporter
+        let exporter = http_config.build()?;
 
         // Add service.name to resource attributes
         let mut resource_attributes = self.resource_attributes;
@@ -128,10 +215,20 @@ impl TracerBuilder {
             self.service_name,
         ));
 
+        // Create resource with optional detection
+        let resource = if self.detect_resources {
+            let env_resource = EnvResourceDetector::new().detect(Duration::from_secs(5));
+            let custom_resource = Resource::new(resource_attributes);
+            custom_resource.merge(&env_resource)
+        } else {
+            Resource::new(resource_attributes)
+        };
+
         // Create tracer provider
+        // Note: BatchConfig is set at the exporter level in newer versions
         let tracer_provider = TracerProvider::builder()
             .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
-            .with_resource(Resource::new(resource_attributes))
+            .with_resource(resource)
             .build();
 
         // Set as global provider
