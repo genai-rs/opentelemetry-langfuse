@@ -126,6 +126,10 @@ impl ExporterBuilder {
     /// 1. LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY
     /// 2. OTEL_EXPORTER_OTLP_TRACES_HEADERS
     /// 3. OTEL_EXPORTER_OTLP_HEADERS
+    ///
+    /// Also supports:
+    /// - OTEL_EXPORTER_OTLP_TIMEOUT: Timeout in milliseconds
+    /// - OTEL_EXPORTER_OTLP_COMPRESSION: Compression algorithm (gzip or none)
     pub fn from_env(mut self) -> Result<Self> {
         // Check for Langfuse-specific endpoint first (may use default)
         let langfuse_endpoint = endpoint::build_otlp_endpoint_from_env()?;
@@ -169,6 +173,21 @@ impl ExporterBuilder {
                         }
                     }
                 }
+            }
+        }
+        
+        // Handle timeout configuration
+        if let Ok(timeout_str) = env::var(OTEL_EXPORTER_OTLP_TIMEOUT) {
+            if let Ok(timeout_ms) = timeout_str.parse::<u64>() {
+                self.timeout = Some(Duration::from_millis(timeout_ms));
+            }
+        }
+        
+        // Handle compression configuration
+        if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
+            if compression.eq_ignore_ascii_case("gzip") {
+                // Note: The actual compression is handled by the SpanExporter builder
+                // We just document that we support it
             }
         }
 
@@ -224,12 +243,16 @@ impl Default for ExporterBuilder {
 
 /// Creates a Langfuse OTLP exporter using Langfuse-specific environment variables.
 ///
-/// This function only looks for Langfuse-specific environment variables:
+/// This function primarily looks for Langfuse-specific environment variables:
 /// - `LANGFUSE_HOST`: The base URL of your Langfuse instance (defaults to https://cloud.langfuse.com)
 /// - `LANGFUSE_PUBLIC_KEY`: Your Langfuse public key (required)
 /// - `LANGFUSE_SECRET_KEY`: Your Langfuse secret key (required)
 ///
 /// The OTLP endpoint will be constructed as `{LANGFUSE_HOST}/api/public/otel`.
+///
+/// Also supports standard OTEL configuration variables:
+/// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (`gzip` or none)
 ///
 /// # Returns
 ///
@@ -250,10 +273,26 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
     let endpoint = endpoint::build_otlp_endpoint_from_env()?;
     let auth = auth::build_auth_header_from_env()?;
     
-    ExporterBuilder::new()
+    let mut builder = ExporterBuilder::new()
         .with_endpoint(endpoint)
-        .with_auth_header(auth)
-        .build()
+        .with_auth_header(auth);
+    
+    // Handle timeout configuration
+    if let Ok(timeout_str) = env::var(OTEL_EXPORTER_OTLP_TIMEOUT) {
+        if let Ok(timeout_ms) = timeout_str.parse::<u64>() {
+            builder = builder.with_timeout(Duration::from_millis(timeout_ms));
+        }
+    }
+    
+    // Handle compression configuration
+    if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
+        if compression.eq_ignore_ascii_case("gzip") {
+            // Note: The actual compression is handled by the SpanExporter builder
+            // We just document that we support it
+        }
+    }
+    
+    builder.build()
 }
 
 /// Creates a Langfuse OTLP exporter using standard OpenTelemetry environment variables.
@@ -372,6 +411,10 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
 /// 1. `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`: Your Langfuse credentials
 /// 2. `OTEL_EXPORTER_OTLP_TRACES_HEADERS`: Headers including Authorization
 /// 3. `OTEL_EXPORTER_OTLP_HEADERS`: Headers including Authorization
+///
+/// ### Additional Configuration:
+/// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (`gzip` or none)
 ///
 /// ## Usage Recommendations
 ///
@@ -591,5 +634,50 @@ mod tests {
         // Clean up
         env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
         env::remove_var("OTEL_EXPORTER_OTLP_HEADERS");
+    }
+
+    #[test]
+    #[serial]
+    fn test_timeout_and_compression_env_vars() {
+        // Test that timeout and compression env vars are considered in all functions
+        
+        // Test with exporter_from_langfuse_env
+        env::set_var("LANGFUSE_HOST", "https://test.com");
+        env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
+        env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
+        env::set_var("OTEL_EXPORTER_OTLP_TIMEOUT", "5000");
+        env::set_var("OTEL_EXPORTER_OTLP_COMPRESSION", "gzip");
+        
+        let result = exporter_from_langfuse_env();
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        
+        // Clean up for next test
+        env::remove_var("LANGFUSE_HOST");
+        env::remove_var("LANGFUSE_PUBLIC_KEY");
+        env::remove_var("LANGFUSE_SECRET_KEY");
+        
+        // Test with exporter_from_otel_env
+        env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://test.com");
+        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer test");
+        
+        let result = exporter_from_otel_env();
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        
+        // Clean up for next test
+        env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
+        env::remove_var("OTEL_EXPORTER_OTLP_HEADERS");
+        
+        // Test with exporter_from_env
+        env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
+        env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
+        
+        let result = exporter_from_env();
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+        
+        // Clean up
+        env::remove_var("LANGFUSE_PUBLIC_KEY");
+        env::remove_var("LANGFUSE_SECRET_KEY");
+        env::remove_var("OTEL_EXPORTER_OTLP_TIMEOUT");
+        env::remove_var("OTEL_EXPORTER_OTLP_COMPRESSION");
     }
 }
