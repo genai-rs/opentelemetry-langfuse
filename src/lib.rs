@@ -82,21 +82,18 @@
 //! let langfuse_attrs = mapper.map_to_langfuse(&otel_attrs);
 //! ```
 
-// New modules for the integration
 pub mod attributes;
 pub mod builder;
 pub mod context;
 pub mod mapper;
 pub mod processor;
 
-// Existing modules
 pub mod auth;
 pub mod constants;
 pub mod endpoint;
 pub mod error;
 pub mod exporter;
 
-// Re-export main types for the new integration
 pub use attributes::{
     LangfuseAttributes, ObservationAttributesBuilder, OpenTelemetryGenAIAttributes,
     TraceAttributesBuilder,
@@ -106,7 +103,6 @@ pub use context::{TracingContext, TracingContextBuilder};
 pub use mapper::{AttributeMapper, GenAIAttributeMapper, MappingRule, PassThroughMapper};
 pub use processor::{LangfuseSpanProcessor, MappingExporter};
 
-// Re-export existing types
 pub use auth::{build_auth_header, build_auth_header_from_env};
 pub use endpoint::{build_otlp_endpoint, build_otlp_endpoint_from_env};
 pub use error::{Error, Result};
@@ -115,6 +111,5 @@ pub use exporter::{
     ExporterBuilder,
 };
 
-// Convenience re-export for Tokio runtime
 #[cfg(feature = "tokio")]
 pub use builder::builder;

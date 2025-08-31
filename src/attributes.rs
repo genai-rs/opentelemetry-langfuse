@@ -11,9 +11,6 @@ use opentelemetry::KeyValue;
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 
-// Note: Since this is an OpenTelemetry-Langfuse extension specifically for GenAI,
-// we assume GenAI constants will be available in future versions of the semantic conventions crate.
-// For now, we define our own constants to maintain compatibility.
 
 /// Langfuse-specific attribute names.
 ///
@@ -23,7 +20,6 @@ use std::collections::HashMap;
 pub struct LangfuseAttributes;
 
 impl LangfuseAttributes {
-    // Trace attributes
     /// Name of the trace
     pub const TRACE_NAME: &'static str = "langfuse.trace.name";
 
@@ -48,7 +44,6 @@ impl LangfuseAttributes {
     /// Output data for the trace
     pub const TRACE_OUTPUT: &'static str = "langfuse.trace.output";
 
-    // Observation attributes
     /// Type of observation (e.g., "generation", "span", "event")
     pub const OBSERVATION_TYPE: &'static str = "langfuse.observation.type";
 
@@ -86,12 +81,7 @@ impl LangfuseAttributes {
 pub struct OpenTelemetryGenAIAttributes;
 
 impl OpenTelemetryGenAIAttributes {
-    // GenAI semantic convention constants
-    // These follow the OpenTelemetry specification for generative AI systems.
-    // Once the official constants are available in the semantic conventions crate,
-    // we can switch to using those.
     
-    // Request attributes
     /// The name of the GenAI model being used
     pub const REQUEST_MODEL: &'static str = "gen_ai.request.model";
     
@@ -116,7 +106,6 @@ impl OpenTelemetryGenAIAttributes {
     /// Presence penalty
     pub const REQUEST_PRESENCE_PENALTY: &'static str = "gen_ai.request.presence_penalty";
     
-    // Response attributes
     /// The unique identifier of the response
     pub const RESPONSE_ID: &'static str = "gen_ai.response.id";
     
@@ -126,7 +115,6 @@ impl OpenTelemetryGenAIAttributes {
     /// Finish reasons for the response
     pub const RESPONSE_FINISH_REASONS: &'static str = "gen_ai.response.finish_reasons";
     
-    // Usage attributes
     /// Number of tokens in the prompt (input)
     /// Note: The spec is moving towards gen_ai.usage.input_tokens
     pub const USAGE_PROMPT_TOKENS: &'static str = "gen_ai.usage.prompt_tokens";
@@ -138,14 +126,12 @@ impl OpenTelemetryGenAIAttributes {
     /// Total number of tokens used
     pub const USAGE_TOTAL_TOKENS: &'static str = "gen_ai.usage.total_tokens";
     
-    // Prompt and completion attributes
     /// JSON-serialized prompts
     pub const PROMPT_JSON: &'static str = "gen_ai.prompt_json";
     
     /// JSON-serialized completions
     pub const COMPLETION_JSON: &'static str = "gen_ai.completion_json";
     
-    // Individual prompt/completion attributes (0-indexed)
     /// Role of the first prompt
     pub const PROMPT_0_ROLE: &'static str = "gen_ai.prompt.0.role";
     
@@ -158,7 +144,6 @@ impl OpenTelemetryGenAIAttributes {
     /// Content of the first completion
     pub const COMPLETION_0_CONTENT: &'static str = "gen_ai.completion.0.content";
     
-    // System attributes
     /// The GenAI system being used (e.g., "openai", "anthropic")
     pub const SYSTEM: &'static str = "gen_ai.system";
     

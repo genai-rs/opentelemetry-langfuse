@@ -25,7 +25,6 @@ impl LLMService {
 
     /// Process a request with explicit context
     async fn process_request(&self, request: &str, context: &TracingContext) -> String {
-        // Create a span with context attributes
         let mut span = self
             .tracer
             .span_builder("process_request")
@@ -34,10 +33,8 @@ impl LLMService {
             .with_attributes(vec![KeyValue::new("request.content", request.to_string())])
             .start(&*self.tracer);
 
-        // Simulate processing
         sleep(Duration::from_millis(100)).await;
 
-        // Call LLM with context
         let response = self.call_llm(request, context).await;
 
         span.set_attribute(KeyValue::new("response.content", response.clone()));
@@ -48,7 +45,6 @@ impl LLMService {
 
     /// Call LLM with context
     async fn call_llm(&self, prompt: &str, context: &TracingContext) -> String {
-        // Create child context with additional attributes
         let llm_context = context.child().with_model("gpt-4").with_temperature(0.7);
 
         let mut span = self
@@ -62,11 +58,9 @@ impl LLMService {
             ])
             .start(&*self.tracer);
 
-        // Simulate LLM call
         sleep(Duration::from_millis(200)).await;
         let response = format!("Response to: {}", prompt);
 
-        // Add response attributes
         span.set_attribute(KeyValue::new(
             "gen_ai.completion.0.content",
             response.clone(),
@@ -87,7 +81,6 @@ async fn handle_user_request(
     session_id: &str,
     request: &str,
 ) -> String {
-    // Create a new context for this request
     let context = TracingContext::new()
         .with_user(user_id)
         .with_session(session_id)
@@ -99,7 +92,6 @@ async fn handle_user_request(
         user_id, session_id
     );
 
-    // Pass context explicitly to service
     service.process_request(request, &context).await
 }
 
@@ -108,7 +100,6 @@ async fn process_batch(service: &LLMService, items: Vec<String>, batch_context: 
     println!("\nProcessing batch of {} items", items.len());
 
     for (i, item) in items.iter().enumerate() {
-        // Create item-specific context inheriting from batch context
         let item_context = batch_context
             .child()
             .with_metadata("batch_item_index", json!(i))
@@ -121,10 +112,8 @@ async fn process_batch(service: &LLMService, items: Vec<String>, batch_context: 
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize tracing
     tracing_subscriber::fmt::init();
 
-    // Create tracer
     let tracer = LangfuseTracerBuilder::new(Tokio)
         .with_service_name("context-passing-demo")
         .with_endpoint(
@@ -133,12 +122,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .build()?;
 
-    // Create service
     let service = LLMService::new(tracer);
 
     println!("=== Context Passing Demo ===\n");
 
-    // Example 1: Individual requests with different contexts
     println!("Example 1: Individual requests with unique contexts");
 
     let response1 = handle_user_request(
@@ -154,7 +141,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         handle_user_request(&service, "user-002", "session-bbb", "What is 2 + 2?").await;
     println!("Response 2: {}\n", response2);
 
-    // Example 2: Batch processing with shared context
     println!("Example 2: Batch processing with shared context");
 
     let batch_context = TracingContext::new()
@@ -170,7 +156,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     process_batch(&service, batch_items, &batch_context).await;
 
-    // Example 3: Context inheritance and modification
     println!("\nExample 3: Context inheritance chain");
 
     let root_context = TracingContext::new()
@@ -186,7 +171,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .child()
         .with_metadata("level", json!("grandchild"));
 
-    // Each level has access to inherited attributes plus its own
     println!(
         "Root attributes: {:?}",
         root_context.get_all_attributes().len()
@@ -207,16 +191,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\n=== Demo Complete ===");
 
-    // Give time for traces to export
     sleep(Duration::from_secs(2)).await;
 
-    // Shutdown
     opentelemetry::global::shutdown_tracer_provider();
 
     Ok(())
 }
 
-// Add uuid to dev-dependencies for this example
-// In Cargo.toml:
-// [dev-dependencies]
-// uuid = { version = "1.0", features = ["v4"] }

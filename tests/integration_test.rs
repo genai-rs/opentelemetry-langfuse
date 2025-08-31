@@ -22,19 +22,16 @@ async fn test_context_inheritance() {
         .with_metadata("level", json!("child"))
         .with_metadata("child_only", json!("data"));
 
-    // Parent attributes should be in child
     assert_eq!(
         child.get_attribute("session.id"),
         Some(json!("session-parent"))
     );
 
-    // Child should override parent
     assert_eq!(
         child.get_attribute("langfuse.trace.metadata.level"),
         Some(json!("child"))
     );
 
-    // Parent should not have child attributes
     assert!(parent
         .get_attribute("langfuse.trace.metadata.child_only")
         .is_none());
@@ -44,7 +41,6 @@ async fn test_context_inheritance() {
 async fn test_attribute_mapping() {
     let mapper = GenAIAttributeMapper::new();
 
-    // Test OTel to Langfuse mapping
     let otel_attrs = vec![
         KeyValue::new(OpenTelemetryGenAIAttributes::REQUEST_MODEL, "gpt-4"),
         KeyValue::new(OpenTelemetryGenAIAttributes::USAGE_PROMPT_TOKENS, 100i64),
@@ -56,12 +52,10 @@ async fn test_attribute_mapping() {
 
     let langfuse_attrs = mapper.map_to_langfuse(&otel_attrs);
 
-    // Check model mapping
     assert!(langfuse_attrs
         .iter()
         .any(|kv| kv.key.as_str() == LangfuseAttributes::OBSERVATION_MODEL));
 
-    // Check token usage mapping
     assert!(langfuse_attrs
         .iter()
         .any(|kv| kv.key.as_str() == LangfuseAttributes::OBSERVATION_USAGE_INPUT));
@@ -69,10 +63,8 @@ async fn test_attribute_mapping() {
         .iter()
         .any(|kv| kv.key.as_str() == LangfuseAttributes::OBSERVATION_USAGE_OUTPUT));
 
-    // Test enrichment
     let enriched = mapper.enrich_attributes(&otel_attrs);
 
-    // Should have added total tokens
     assert!(enriched
         .iter()
         .any(|kv| kv.key.as_str() == OpenTelemetryGenAIAttributes::USAGE_TOTAL_TOKENS));
@@ -87,15 +79,12 @@ async fn test_tracer_builder_with_context() {
         .temperature(0.5)
         .build();
 
-    // Use a noop exporter for testing
     let _tracer = LangfuseTracerBuilder::new(Tokio)
         .with_endpoint("http://localhost:4318/v1/traces")
         .with_service_name("test-service")
         .with_context(context)
         .build();
 
-    // The tracer should be created successfully
-    // In a real test with a mock server, we'd verify the traces
 }
 
 #[tokio::test]
@@ -111,7 +100,6 @@ async fn test_context_to_otel_attributes() {
 
     let attrs = context.to_otel_attributes();
 
-    // Check that all attributes are present
     assert!(attrs.iter().any(|kv| kv.key.as_str() == "session.id"));
     assert!(attrs.iter().any(|kv| kv.key.as_str() == "user.id"));
     assert!(attrs
@@ -144,7 +132,6 @@ async fn test_model_parameters_aggregation() {
 
     let langfuse_attrs = mapper.map_to_langfuse(&otel_attrs);
 
-    // Should have model parameters aggregated
     assert!(langfuse_attrs
         .iter()
         .any(|kv| kv.key.as_str() == LangfuseAttributes::OBSERVATION_MODEL_PARAMETERS));
@@ -154,19 +141,15 @@ async fn test_model_parameters_aggregation() {
 async fn test_bidirectional_mapping() {
     let mapper = GenAIAttributeMapper::new();
 
-    // Original attributes
     let original = vec![
         KeyValue::new("user.id", "user-123"),
         KeyValue::new(OpenTelemetryGenAIAttributes::REQUEST_MODEL, "gpt-4"),
     ];
 
-    // Map to Langfuse
     let langfuse = mapper.map_to_langfuse(&original);
 
-    // Map back to OTel
     let back_to_otel = mapper.map_to_otel(&langfuse);
 
-    // Check that we can find the original values
     assert!(back_to_otel.iter().any(|kv| kv.key.as_str() == "user.id"));
     assert!(back_to_otel
         .iter()
@@ -198,16 +181,13 @@ async fn test_context_merge() {
 
     context1.merge(&context2);
 
-    // Check overwritten value
     assert_eq!(context1.get_attribute("user.id"), Some(json!("user-2")));
 
-    // Check new value
     assert_eq!(
         context1.get_attribute(OpenTelemetryGenAIAttributes::REQUEST_MODEL),
         Some(json!("gpt-4"))
     );
 
-    // Check preserved value
     assert_eq!(
         context1.get_attribute("session.id"),
         Some(json!("session-1"))

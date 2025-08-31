@@ -68,22 +68,17 @@ impl<R: Runtime> LangfuseSpanProcessor<R> {
 
 impl<R: Runtime> SpanProcessor for LangfuseSpanProcessor<R> {
     fn on_start(&self, span: &mut opentelemetry_sdk::trace::Span, cx: &OtelContext) {
-        // Get attributes from context
         let context_attrs = self.context.to_otel_attributes();
 
-        // Set context attributes on the span using the Span trait
         use opentelemetry::trace::Span as SpanTrait;
         for attr in context_attrs {
             span.set_attribute(attr);
         }
 
-        // Let the inner processor handle its on_start logic
         self.inner.on_start(span, cx);
     }
 
     fn on_end(&self, span: SpanData) {
-        // Note: We can't modify SpanData directly in on_end
-        // The attribute enrichment happens in on_start
         self.inner.on_end(span);
     }
 
@@ -204,22 +199,13 @@ where
     E: SpanExporter,
 {
     async fn export(&self, batch: Vec<SpanData>) -> opentelemetry_sdk::error::OTelSdkResult {
-        // Map attributes for each span
         let mapped_batch: Vec<SpanData> = batch
             .into_iter()
             .map(|span| {
-                // Map attributes to Langfuse format
                 let mapped_attrs = self.mapper.map_to_langfuse(&span.attributes);
 
-                // Enrich with additional attributes
                 let _enriched_attrs = self.mapper.enrich_attributes(&mapped_attrs);
 
-                // Create new span data with mapped attributes
-                // Note: SpanData doesn't have a direct way to modify attributes,
-                // so we'd need to create a new one or use unsafe operations.
-                // For this example, we'll return the original span.
-                // In a real implementation, you might need to use a custom exporter
-                // that handles the mapping at serialization time.
                 span
             })
             .collect();
@@ -274,8 +260,6 @@ mod tests {
             .with_scheduled_delay(Duration::from_secs(10))
             .build();
 
-        // The processor should be created successfully
-        // In a real test, we'd verify that spans are processed correctly
         assert!(processor.force_flush().is_ok());
     }
 
@@ -285,7 +269,5 @@ mod tests {
         let mapper = Arc::new(crate::mapper::GenAIAttributeMapper::new());
         let _exporter = MappingExporter::new(inner, mapper);
 
-        // The exporter should be created successfully
-        // In a real test, we'd verify that attributes are mapped correctly
     }
 }

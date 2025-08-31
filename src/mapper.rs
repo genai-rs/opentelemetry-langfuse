@@ -56,7 +56,6 @@ impl GenAIAttributeMapper {
     pub fn new() -> Self {
         let mut rules = HashMap::new();
 
-        // Model mappings
         rules.insert(
             OpenTelemetryGenAIAttributes::REQUEST_MODEL.to_string(),
             MappingRule::Bidirectional {
@@ -65,7 +64,6 @@ impl GenAIAttributeMapper {
             },
         );
 
-        // Token usage mappings
         rules.insert(
             OpenTelemetryGenAIAttributes::USAGE_PROMPT_TOKENS.to_string(),
             MappingRule::Transform {
@@ -84,7 +82,6 @@ impl GenAIAttributeMapper {
             },
         );
 
-        // Model parameters complex mapping
         rules.insert(
             "model_parameters".to_string(),
             MappingRule::Complex {
@@ -102,7 +99,6 @@ impl GenAIAttributeMapper {
             },
         );
 
-        // User ID mapping
         rules.insert(
             "user.id".to_string(),
             MappingRule::Bidirectional {
@@ -111,7 +107,6 @@ impl GenAIAttributeMapper {
             },
         );
 
-        // Session ID mapping
         rules.insert(
             "session.id".to_string(),
             MappingRule::Bidirectional {
@@ -198,7 +193,6 @@ impl AttributeMapper for GenAIAttributeMapper {
             let key = attr.key.as_str();
             let value = self.key_value_to_json(attr);
 
-            // Check if this attribute has a mapping rule
             if let Some(rule) = self.mapping_rules.get(key) {
                 match rule {
                     MappingRule::Bidirectional { langfuse_key, .. } => {
@@ -223,11 +217,9 @@ impl AttributeMapper for GenAIAttributeMapper {
                     }
                 }
             } else if key.starts_with("gen_ai.request.") && !key.contains("model") {
-                // Collect model parameters
                 let param_name = key.strip_prefix("gen_ai.request.").unwrap_or(key);
                 model_params.insert(param_name.to_string(), value);
             } else if key.starts_with("gen_ai.prompt.") || key.starts_with("gen_ai.completion.") {
-                // Handle prompt and completion attributes
                 if key.ends_with(".content") {
                     let target_key = if key.starts_with("gen_ai.prompt.") {
                         LangfuseAttributes::OBSERVATION_INPUT
@@ -237,12 +229,10 @@ impl AttributeMapper for GenAIAttributeMapper {
                     result.push(self.json_to_key_value(target_key.to_string(), value));
                 }
             } else {
-                // Pass through unmapped attributes
                 result.push(attr.clone());
             }
         }
 
-        // Add collected model parameters as a single JSON attribute
         if !model_params.is_empty() {
             result.push(self.json_to_key_value(
                 LangfuseAttributes::OBSERVATION_MODEL_PARAMETERS.to_string(),
@@ -260,7 +250,6 @@ impl AttributeMapper for GenAIAttributeMapper {
             let key = attr.key.as_str();
             let value = self.key_value_to_json(attr);
 
-            // Find reverse mapping
             let mut found_mapping = false;
             for (_, rule) in &self.mapping_rules {
                 match rule {
@@ -278,7 +267,6 @@ impl AttributeMapper for GenAIAttributeMapper {
                 }
             }
 
-            // Special handling for certain Langfuse attributes
             if !found_mapping {
                 match key {
                     k if k == LangfuseAttributes::OBSERVATION_USAGE_INPUT => {
@@ -294,7 +282,6 @@ impl AttributeMapper for GenAIAttributeMapper {
                         ));
                     }
                     k if k == LangfuseAttributes::OBSERVATION_MODEL_PARAMETERS => {
-                        // Expand model parameters back to individual gen_ai.request.* attributes
                         if let JsonValue::Object(params) = value {
                             for (param_key, param_value) in params {
                                 let otel_key = format!("gen_ai.request.{}", param_key);
@@ -303,7 +290,6 @@ impl AttributeMapper for GenAIAttributeMapper {
                         }
                     }
                     _ => {
-                        // Pass through unmapped attributes
                         result.push(attr.clone());
                     }
                 }
@@ -316,7 +302,6 @@ impl AttributeMapper for GenAIAttributeMapper {
     fn enrich_attributes(&self, attributes: &[KeyValue]) -> Vec<KeyValue> {
         let mut enriched = attributes.to_vec();
 
-        // Calculate total tokens if we have prompt and completion tokens
         let mut prompt_tokens = None;
         let mut completion_tokens = None;
 
@@ -376,7 +361,6 @@ mod tests {
     fn test_bidirectional_mapping() {
         let mapper = GenAIAttributeMapper::new();
 
-        // Test OTel to Langfuse
         let otel_attrs = vec![
             KeyValue::new(OpenTelemetryGenAIAttributes::REQUEST_MODEL, "gpt-4"),
             KeyValue::new("user.id", "user-123"),
@@ -391,7 +375,6 @@ mod tests {
             .iter()
             .any(|kv| kv.key.as_str() == LangfuseAttributes::TRACE_USER_ID));
 
-        // Test Langfuse to OTel (reverse)
         let otel_attrs_back = mapper.map_to_otel(&langfuse_attrs);
 
         assert!(otel_attrs_back
@@ -433,7 +416,6 @@ mod tests {
 
         let langfuse_attrs = mapper.map_to_langfuse(&otel_attrs);
 
-        // Should have model parameters aggregated
         assert!(langfuse_attrs
             .iter()
             .any(|kv| kv.key.as_str() == LangfuseAttributes::OBSERVATION_MODEL_PARAMETERS));
@@ -453,7 +435,6 @@ mod tests {
 
         let enriched = mapper.enrich_attributes(&attrs);
 
-        // Should have added total tokens
         assert!(enriched
             .iter()
             .any(|kv| kv.key.as_str() == OpenTelemetryGenAIAttributes::USAGE_TOTAL_TOKENS));
@@ -461,7 +442,6 @@ mod tests {
             .iter()
             .any(|kv| kv.key.as_str() == LangfuseAttributes::OBSERVATION_USAGE_TOTAL));
 
-        // Check the value
         let total = enriched
             .iter()
             .find(|kv| kv.key.as_str() == OpenTelemetryGenAIAttributes::USAGE_TOTAL_TOKENS)

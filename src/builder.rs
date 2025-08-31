@@ -179,34 +179,28 @@ impl<R: Runtime> LangfuseTracerBuilder<R> {
 
     /// Builds the tracer.
     pub fn build(self) -> BuilderResult<impl Tracer> {
-        // Create resource attributes
         let mut resource_attrs = vec![KeyValue::new("service.name", self.service_name.clone())];
 
         if let Some(version) = self.service_version {
             resource_attrs.push(KeyValue::new("service.version", version));
         }
 
-        // Add context attributes to resource
         resource_attrs.extend(self.context.to_otel_attributes());
 
         let resource = Resource::new(resource_attrs);
 
-        // Use the existing exporter builder from our crate
         let mut exporter_builder = crate::exporter::ExporterBuilder::new()
             .with_endpoint(&self.endpoint)
             .with_timeout(self.timeout);
 
-        // Add headers
         for (key, value) in self.headers {
             exporter_builder = exporter_builder.with_header(&key, &value);
         }
 
-        // Build the exporter
         let span_exporter = exporter_builder
             .build()
             .map_err(|e| BuilderError::Configuration(e.to_string()))?;
 
-        // Create the span processor with Langfuse context
         let processor = LangfuseSpanProcessor::builder(span_exporter, self.runtime.clone())
             .with_context(self.context)
             .with_mapper(self.mapper)
@@ -216,7 +210,6 @@ impl<R: Runtime> LangfuseTracerBuilder<R> {
             .with_max_export_timeout(self.batch_config.max_export_timeout)
             .build();
 
-        // Create the tracer provider
         let provider = SdkTracerProvider::builder()
             .with_span_processor(processor)
             .with_config(
@@ -227,10 +220,8 @@ impl<R: Runtime> LangfuseTracerBuilder<R> {
             )
             .build();
 
-        // Get a tracer from the provider
         let tracer = provider.tracer(self.service_name);
 
-        // Set as global provider if desired
         global::set_tracer_provider(provider);
 
         Ok(tracer)
@@ -282,13 +273,11 @@ mod tests {
             .with_metadata("environment", json!("testing"))
             .with_timeout(Duration::from_secs(30));
 
-        // Verify builder properties are set
         assert_eq!(builder.endpoint, "https://example.com/otel");
         assert_eq!(builder.service_name, "test-service");
         assert_eq!(builder.service_version, Some("1.0.0".to_string()));
         assert_eq!(builder.timeout, Duration::from_secs(30));
 
-        // Check that API key header was added
         assert!(builder
             .headers
             .iter()

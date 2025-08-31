@@ -60,15 +60,12 @@ mod tests {
 
     #[test]
     fn test_build_otlp_endpoint() {
-        // Test with URL without trailing slash
         let endpoint = build_otlp_endpoint("https://cloud.langfuse.com");
         assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
 
-        // Test with URL with trailing slash
         let endpoint = build_otlp_endpoint("https://cloud.langfuse.com/");
         assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
 
-        // Test with US region URL
         let endpoint = build_otlp_endpoint("https://us.cloud.langfuse.com");
         assert_eq!(endpoint, "https://us.cloud.langfuse.com/api/public/otel");
     }
@@ -80,12 +77,10 @@ mod tests {
         let endpoint = build_otlp_endpoint_from_env().unwrap();
         assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
 
-        // Test with trailing slash in env var
         env::set_var(ENV_LANGFUSE_HOST, "https://cloud.langfuse.com/");
         let endpoint = build_otlp_endpoint_from_env().unwrap();
         assert_eq!(endpoint, "https://cloud.langfuse.com/api/public/otel");
 
-        // Cleanup
         env::remove_var(ENV_LANGFUSE_HOST);
     }
 

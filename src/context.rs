@@ -381,19 +381,16 @@ mod tests {
 
         let child = parent.child().with_name("child-trace");
 
-        // Child should inherit parent attributes
         assert_eq!(
             child.get_attribute(LangfuseAttributes::TRACE_SESSION_ID),
             Some(JsonValue::String("session-parent".to_string()))
         );
 
-        // Child should have its own attributes
         assert_eq!(
             child.get_attribute(LangfuseAttributes::TRACE_NAME),
             Some(JsonValue::String("child-trace".to_string()))
         );
 
-        // Parent should not have child's attributes
         assert_eq!(parent.get_attribute(LangfuseAttributes::TRACE_NAME), None);
     }
 
@@ -407,7 +404,6 @@ mod tests {
         let otel_attrs = context.to_otel_attributes();
         assert_eq!(otel_attrs.len(), 3);
 
-        // Check that attributes are properly converted
         assert!(otel_attrs
             .iter()
             .any(|kv| kv.key.as_str() == LangfuseAttributes::TRACE_SESSION_ID));
