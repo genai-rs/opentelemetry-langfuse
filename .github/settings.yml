@@ -1,0 +1,136 @@
+# GitHub repository settings
+# These settings document the repository configuration
+# To apply automatically, install the GitHub Settings app: https://github.com/apps/settings
+
+repository:
+  # Basic settings
+  name: opentelemetry-langfuse
+  description: OpenTelemetry integration for Langfuse observability
+  homepage: https://docs.rs/opentelemetry-langfuse
+  topics:
+    - opentelemetry
+    - langfuse
+    - observability
+    - tracing
+    - monitoring
+    - rust
+  
+  # Repository settings
+  private: false
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_downloads: true
+  
+  # Default branch
+  default_branch: main
+  
+  # Merge settings
+  allow_squash_merge: false
+  allow_merge_commit: false
+  allow_rebase_merge: true
+  allow_auto_merge: false
+  delete_branch_on_merge: true
+  allow_update_branch: true
+  
+  # Security settings
+  enable_automated_security_fixes: true
+  enable_vulnerability_alerts: true
+  
+# Branch protection rules
+branches:
+  - name: main
+    # https://docs.github.com/en/rest/branches/branch-protection
+    protection:
+      # Require PR reviews
+      required_pull_request_reviews: null  # No required reviews for now
+      
+      # Require status checks
+      required_status_checks:
+        strict: true  # Require branches to be up to date before merging
+        contexts:
+          # Linting (single job)
+          - "Lint"
+          
+          # Testing (all combinations)
+          - "Test (ubuntu-latest / stable)"
+          - "Test (ubuntu-latest / beta)"
+          - "Test (ubuntu-latest / 1.82)"
+          - "Test (macos-latest / stable)"
+          - "Test (macos-latest / beta)"
+          - "Test (macos-latest / 1.82)"
+          - "Test (windows-latest / stable)"
+          - "Test (windows-latest / beta)"
+          - "Test (windows-latest / 1.82)"
+          
+          # Security checks
+          - "Cargo Audit"
+          - "Cargo Deny"
+          - "TruffleHog Secrets Scan"
+          - "Gitleaks Secrets Scan"
+          
+          # Dependencies
+          - "Check Unused Dependencies"
+          
+          # Note: Code Coverage and CodeQL are informational only, not required
+      
+      # Enforce for admins
+      enforce_admins: false
+      
+      # Restrict who can push
+      restrictions: null
+      
+      # Other settings
+      required_linear_history: true
+      allow_force_pushes: false
+      allow_deletions: false
+      block_creations: false
+      required_conversation_resolution: false
+      lock_branch: false
+      allow_fork_syncing: false
+
+# Labels for issues and PRs
+labels:
+  - name: bug
+    color: d73a4a
+    description: Something isn't working
+  
+  - name: documentation
+    color: 0075ca
+    description: Improvements or additions to documentation
+  
+  - name: enhancement
+    color: a2eeef
+    description: New feature or request
+  
+  - name: good first issue
+    color: 7057ff
+    description: Good for newcomers
+  
+  - name: help wanted
+    color: 008672
+    description: Extra attention is needed
+  
+  - name: release
+    color: 00FF00
+    description: Release-related PR or issue
+  
+  - name: dependencies
+    color: 0366d6
+    description: Pull requests that update a dependency file
+  
+  - name: automated
+    color: 8B4789
+    description: Automated PR from bots
+  
+  - name: release-plz
+    color: 00FF00
+    description: Created by release-plz bot
+  
+  - name: ci
+    color: FFFF00
+    description: Continuous Integration
+  
+  - name: msrv
+    color: FF6B35
+    description: Minimum Supported Rust Version changes
