@@ -51,7 +51,7 @@ async fn test_traces_endpoint() -> Result<(), Box<dyn Error>> {
     );
 
     println!(
-        "  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT={}/api/public/otel",
+        "  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT={}/api/public/otel/v1/traces",
         host
     );
     println!("  OTEL_EXPORTER_OTLP_TRACES_HEADERS=Authorization=Basic <credentials>");
