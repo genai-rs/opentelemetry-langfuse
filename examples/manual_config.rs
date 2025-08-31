@@ -29,11 +29,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Create tracer provider with the configured exporter
     let tracer_provider = SdkTracerProvider::builder()
         .with_batch_exporter(exporter)
-        .with_resource(Resource::builder().with_attributes(vec![
-            KeyValue::new("service.name", "manual-config-example"),
-            KeyValue::new("environment", "development"),
-            KeyValue::new("version", "1.0.0"),
-        ]).build())
+        .with_resource(
+            Resource::builder()
+                .with_attributes(vec![
+                    KeyValue::new("service.name", "manual-config-example"),
+                    KeyValue::new("environment", "development"),
+                    KeyValue::new("version", "1.0.0"),
+                ])
+                .build(),
+        )
         .build();
 
     // Set as global provider
@@ -58,10 +62,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     span.add_event(
         "error_handled",
         vec![
-            KeyValue::new(
-                "error.message",
-                "Something went wrong (but we handled it)",
-            ),
+            KeyValue::new("error.message", "Something went wrong (but we handled it)"),
             KeyValue::new("error.handled", true),
         ],
     );
@@ -140,13 +141,10 @@ async fn do_something_that_might_fail<T: Tracer>(tracer: &T) -> Result<String, S
 async fn verify_traces_in_langfuse() -> Result<(), Box<dyn Error>> {
     // Create Langfuse client using the same credentials
     let client = LangfuseClient::from_env()?;
-    
+
     // Query for recent traces
-    let traces = client.list_traces()
-        .limit(10)
-        .call()
-        .await?;
-    
+    let traces = client.list_traces().limit(10).call().await?;
+
     // The response is a JSON value, so we check if it contains data
     if let Some(data) = traces.get("data") {
         if let Some(array) = data.as_array() {
@@ -171,6 +169,6 @@ async fn verify_traces_in_langfuse() -> Result<(), Box<dyn Error>> {
     } else {
         println!("⚠️  Unexpected response format from Langfuse");
     }
-    
+
     Ok(())
 }
