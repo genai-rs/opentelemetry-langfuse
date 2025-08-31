@@ -2,7 +2,10 @@
 
 use opentelemetry::global;
 use opentelemetry::trace::{Span, Tracer};
-use opentelemetry_langfuse::TracerBuilder;
+use opentelemetry::KeyValue;
+use opentelemetry_langfuse::ExporterBuilder;
+use opentelemetry_sdk::trace::TracerProvider;
+use opentelemetry_sdk::Resource;
 use std::error::Error;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -13,15 +16,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
     dotenv::dotenv().ok();
 
     // Manual configuration using the builder
-    let tracer_provider = TracerBuilder::new("manual-config-example")
+    let exporter = ExporterBuilder::new()
         .with_host("https://cloud.langfuse.com")
         .with_credentials(
             &std::env::var("LANGFUSE_PUBLIC_KEY").expect("LANGFUSE_PUBLIC_KEY not set"),
             &std::env::var("LANGFUSE_SECRET_KEY").expect("LANGFUSE_SECRET_KEY not set"),
         )
-        .with_resource_attribute("environment", "development")
-        .with_resource_attribute("version", "1.0.0")
-        .install()?;
+        .with_timeout(Duration::from_secs(10))
+        .build()?;
+
+    // Create tracer provider with the configured exporter
+    let tracer_provider = TracerProvider::builder()
+        .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
+        .with_resource(Resource::new(vec![
+            KeyValue::new("service.name", "manual-config-example"),
+            KeyValue::new("environment", "development"),
+            KeyValue::new("version", "1.0.0"),
+        ]))
+        .build();
+
+    // Set as global provider
+    global::set_tracer_provider(tracer_provider.clone());
 
     println!("Tracer initialized with manual configuration!");
 
@@ -32,9 +47,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut span = tracer
         .span_builder("manual-operation")
         .with_attributes(vec![
-            opentelemetry::KeyValue::new("config.type", "manual"),
-            opentelemetry::KeyValue::new("user.id", "user-123"),
-            opentelemetry::KeyValue::new("session.id", "session-456"),
+            KeyValue::new("config.type", "manual"),
+            KeyValue::new("user.id", "user-123"),
+            KeyValue::new("session.id", "session-456"),
         ])
         .start(&tracer);
 
@@ -42,11 +57,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     span.add_event(
         "error_handled",
         vec![
-            opentelemetry::KeyValue::new(
+            KeyValue::new(
                 "error.message",
                 "Something went wrong (but we handled it)",
             ),
-            opentelemetry::KeyValue::new("error.handled", true),
+            KeyValue::new("error.handled", true),
         ],
     );
 
@@ -57,9 +72,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     span.add_event(
         "user_action",
         vec![
-            opentelemetry::KeyValue::new("action", "button_click"),
-            opentelemetry::KeyValue::new("button.id", "submit"),
-            opentelemetry::KeyValue::new("timestamp", chrono::Utc::now().to_rfc3339()),
+            KeyValue::new("action", "button_click"),
+            KeyValue::new("button.id", "submit"),
+            KeyValue::new("timestamp", chrono::Utc::now().to_rfc3339()),
         ],
     );
 
@@ -93,7 +108,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 async fn do_something_that_might_fail<T: Tracer>(tracer: &T) -> Result<String, String> {
     let mut span = tracer
         .span_builder("risky-operation")
-        .with_attributes(vec![opentelemetry::KeyValue::new("risk.level", "high")])
+        .with_attributes(vec![KeyValue::new("risk.level", "high")])
         .start(tracer);
 
     // Simulate some processing
@@ -106,8 +121,8 @@ async fn do_something_that_might_fail<T: Tracer>(tracer: &T) -> Result<String, S
         span.add_event(
             "exception",
             vec![
-                opentelemetry::KeyValue::new("exception.type", "DatabaseError"),
-                opentelemetry::KeyValue::new("exception.message", "Database connection timeout"),
+                KeyValue::new("exception.type", "DatabaseError"),
+                KeyValue::new("exception.message", "Database connection timeout"),
             ],
         );
         span.end();
