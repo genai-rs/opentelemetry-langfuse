@@ -277,7 +277,7 @@ impl Default for ExporterBuilder {
 /// Creates a Langfuse OTLP exporter using Langfuse-specific environment variables.
 ///
 /// This function primarily looks for Langfuse-specific environment variables:
-/// - `LANGFUSE_HOST`: The base URL of your Langfuse instance (defaults to https://cloud.langfuse.com)
+/// - `LANGFUSE_HOST`: The base URL of your Langfuse instance (defaults to <https://cloud.langfuse.com>)
 /// - `LANGFUSE_PUBLIC_KEY`: Your Langfuse public key (required)
 /// - `LANGFUSE_SECRET_KEY`: Your Langfuse secret key (required)
 ///
@@ -348,10 +348,10 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
 /// ## Langfuse Configuration
 ///
 /// For Langfuse, use one of these endpoint configurations:
-/// - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://cloud.langfuse.com/api/public/otel`
-/// - `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel` (creates `/api/public/otel/v1/traces`)
+/// - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=<https://cloud.langfuse.com/api/public/otel>`
+/// - `OTEL_EXPORTER_OTLP_ENDPOINT=<https://cloud.langfuse.com/api/public/otel>` (creates `/api/public/otel/v1/traces`)
 ///
-/// ⚠️ Do NOT use `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public` as this would
+/// ⚠️ Do NOT use `OTEL_EXPORTER_OTLP_ENDPOINT=<https://cloud.langfuse.com/api/public>` as this would
 /// create `/api/public/v1/traces` which Langfuse does not accept.
 ///
 /// # Returns
@@ -365,7 +365,7 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
 ///
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// // Set environment variables:
-/// // OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+/// // OTEL_EXPORTER_OTLP_ENDPOINT=<https://cloud.langfuse.com/api/public/otel>
 /// // OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <base64_encoded_credentials>
 /// let exporter = exporter_from_otel_env()?;
 /// // Use the exporter with your TracerProvider setup
@@ -436,7 +436,7 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
 /// 1. `LANGFUSE_HOST`: The base URL of your Langfuse instance (appends `/api/public/otel`)
 /// 2. `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`: Direct OTLP traces endpoint URL
 /// 3. `OTEL_EXPORTER_OTLP_ENDPOINT`: Base OTLP endpoint (appends `/v1/traces`)
-/// 4. **Default**: `https://cloud.langfuse.com/api/public/otel` (when no endpoint variables are set)
+/// 4. **Default**: `<https://cloud.langfuse.com/api/public/otel>` (when no endpoint variables are set)
 ///
 /// ### For authentication (in order of precedence):
 /// 1. `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`: Your Langfuse credentials
