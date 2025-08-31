@@ -81,8 +81,8 @@
 //!
 //! Example:
 //! ```bash
-//! export OTEL_EXPORTER_OTLP_ENDPOINT="https://cloud.langfuse.com/api/public"
-//! export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64_encoded_credentials>"
+//! export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="https://cloud.langfuse.com/api/public/otel"
+//! export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Authorization=Basic <base64_encoded_credentials>"
 //! ```
 //!
 //! Use `exporter_from_otel_env()` to create an exporter using only these variables.

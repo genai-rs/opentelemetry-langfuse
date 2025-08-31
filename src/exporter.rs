@@ -181,10 +181,11 @@ impl ExporterBuilder {
         }
 
         // Handle compression configuration
+        // Note: Compression env var is read for compatibility but not yet applied
+        // The opentelemetry-otlp HTTP exporter compression support is pending
         if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
             if compression.eq_ignore_ascii_case("gzip") {
-                // Note: The actual compression is handled by the SpanExporter builder
-                // We just document that we support it
+                // TODO: Apply compression when opentelemetry-otlp supports it
             }
         }
 
@@ -323,10 +324,11 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
     }
 
     // Handle compression configuration
+    // Note: Compression env var is read for compatibility but not yet applied
+    // The opentelemetry-otlp HTTP exporter compression support is pending
     if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
         if compression.eq_ignore_ascii_case("gzip") {
-            // Note: The actual compression is handled by the SpanExporter builder
-            // We just document that we support it
+            // TODO: Apply compression when opentelemetry-otlp supports it
         }
     }
 
@@ -352,7 +354,7 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
 ///
 /// ### Additional Configuration
 /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
-/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (`gzip` or none)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (read but not yet applied, pending opentelemetry-otlp support)
 ///
 /// ## Langfuse Configuration
 ///
@@ -428,10 +430,11 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
     }
 
     // Handle compression configuration
+    // Note: Compression env var is read for compatibility but not yet applied
+    // The opentelemetry-otlp HTTP exporter compression support is pending
     if let Ok(compression) = env::var(OTEL_EXPORTER_OTLP_COMPRESSION) {
         if compression.eq_ignore_ascii_case("gzip") {
-            // Note: The actual compression is handled by the SpanExporter builder
-            // We just document that we support it
+            // TODO: Apply compression when opentelemetry-otlp supports it
         }
     }
 
