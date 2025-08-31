@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.3.0...v0.3.1) - 2025-08-31
+
+### Fixed
+
+- correct println output in examples and add whitespace trimming
+- add /v1/traces to endpoint URL (fixes #11)
+
 ## [0.3.0](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.2.0...v0.3.0) - 2025-08-31
 
 ### Fixed
