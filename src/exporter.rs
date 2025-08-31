@@ -126,7 +126,7 @@ impl ExporterBuilder {
     ///
     /// Also supports:
     /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds
-    /// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Read but not applied (HTTP transport doesn't support compression)
+    /// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Not supported (HTTP transport doesn't support compression)
     pub fn from_env(mut self) -> Result<Self> {
         // Check for Langfuse-specific endpoint first (may use default)
         let langfuse_endpoint = endpoint::build_otlp_endpoint_from_env()?;
@@ -180,8 +180,8 @@ impl ExporterBuilder {
             }
         }
 
-        // Note: OTEL_EXPORTER_OTLP_COMPRESSION would be read here for compression support,
-        // but the HTTP transport doesn't support compression in opentelemetry-otlp 0.30
+        // Note: OTEL_EXPORTER_OTLP_COMPRESSION is not supported as the HTTP transport
+        // doesn't support compression in opentelemetry-otlp 0.30
 
         Ok(self)
     }
@@ -285,7 +285,7 @@ impl Default for ExporterBuilder {
 ///
 /// Also supports standard OTEL configuration variables:
 /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
-/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Read but not applied (HTTP transport doesn't support compression)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Not supported (HTTP transport doesn't support compression)
 ///
 /// # Returns
 ///
@@ -317,9 +317,8 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
         }
     }
 
-    // Note: OTEL_EXPORTER_OTLP_COMPRESSION is read for compatibility but not applied
-    // as the HTTP transport doesn't support compression in opentelemetry-otlp 0.30
-    let _ = env::var(OTEL_EXPORTER_OTLP_COMPRESSION);
+    // Note: OTEL_EXPORTER_OTLP_COMPRESSION is not supported as the HTTP transport
+    // doesn't support compression in opentelemetry-otlp 0.30
 
     builder.build()
 }
@@ -343,7 +342,7 @@ pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
 ///
 /// ### Additional Configuration
 /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
-/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Read but not applied (HTTP transport doesn't support compression)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Not supported (HTTP transport doesn't support compression)
 ///
 /// ## Langfuse Configuration
 ///
@@ -418,9 +417,8 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
         }
     }
 
-    // Note: OTEL_EXPORTER_OTLP_COMPRESSION is read for compatibility but not applied
-    // as the HTTP transport doesn't support compression in opentelemetry-otlp 0.30
-    let _ = env::var(OTEL_EXPORTER_OTLP_COMPRESSION);
+    // Note: OTEL_EXPORTER_OTLP_COMPRESSION is not supported as the HTTP transport
+    // doesn't support compression in opentelemetry-otlp 0.30
 
     builder.build()
 }
@@ -445,7 +443,7 @@ pub fn exporter_from_otel_env() -> Result<SpanExporter> {
 ///
 /// ### Additional Configuration:
 /// - `OTEL_EXPORTER_OTLP_TIMEOUT`: Timeout in milliseconds (default: 10000)
-/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Compression algorithm (`gzip`, `zstd`, or none)
+/// - `OTEL_EXPORTER_OTLP_COMPRESSION`: Not supported (HTTP transport doesn't support compression)
 ///
 /// ## Usage Recommendations
 ///
