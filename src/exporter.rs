@@ -207,33 +207,50 @@ impl ExporterBuilder {
         // Add additional headers first (may include Authorization from OTEL env)
         headers.extend(self.additional_headers);
 
-        // Check if Authorization header exists (case-insensitive)
-        // and normalize it to "Authorization" if found with different casing
-        let has_auth = headers
-            .keys()
-            .any(|k| k.eq_ignore_ascii_case("authorization"));
+        // Handle Authorization header with proper precedence:
+        // 1. auth_header (from with_auth_header/with_basic_auth) takes precedence
+        // 2. Otherwise use authorization from additional_headers (normalized)
+        // 3. Error if neither is present
 
-        if has_auth {
-            // Find and normalize the Authorization header key
+        if let Some(auth_header) = self.auth_header {
+            // Remove any existing authorization headers (case-insensitive)
+            // since auth_header takes precedence
             let auth_keys: Vec<String> = headers
                 .keys()
                 .filter(|k| k.eq_ignore_ascii_case("authorization"))
                 .cloned()
                 .collect();
 
-            // If we have authorization with non-standard casing, normalize it
             for key in auth_keys {
-                if key != "Authorization" {
-                    if let Some(value) = headers.remove(&key) {
-                        headers.insert("Authorization".to_string(), value);
+                headers.remove(&key);
+            }
+
+            // Insert the auth_header with normalized key
+            headers.insert("Authorization".to_string(), auth_header);
+        } else {
+            // No explicit auth_header, check if we have one in additional_headers
+            let has_auth = headers
+                .keys()
+                .any(|k| k.eq_ignore_ascii_case("authorization"));
+
+            if has_auth {
+                // Find and normalize the Authorization header key
+                let auth_keys: Vec<String> = headers
+                    .keys()
+                    .filter(|k| k.eq_ignore_ascii_case("authorization"))
+                    .cloned()
+                    .collect();
+
+                // If we have authorization with non-standard casing, normalize it
+                for key in auth_keys {
+                    if key != "Authorization" {
+                        if let Some(value) = headers.remove(&key) {
+                            headers.insert("Authorization".to_string(), value);
+                        }
                     }
                 }
-            }
-        } else {
-            // No Authorization header found, add the auth_header if available
-            if let Some(auth_header) = self.auth_header {
-                headers.insert("Authorization".to_string(), auth_header);
             } else {
+                // No Authorization header found anywhere
                 return Err(Error::MissingConfiguration(
                     "Authorization header or Langfuse credentials",
                 ));
@@ -751,14 +768,25 @@ mod tests {
 
         assert!(matches!(result, Err(Error::OtlpExporter(_))));
 
-        // Test that auth_header is not added if authorization already exists
+        // Test that auth_header takes precedence over header from with_header
         let result = ExporterBuilder::new()
             .with_endpoint("https://test.com")
             .with_header("authorization", "Bearer from-header")
             .with_auth_header("Bearer from-auth")
             .build();
 
-        // The header from with_header should be used (and normalized)
+        // The auth_header should take precedence over with_header
+        // This will fail with OtlpExporter error but would have "Bearer from-auth"
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+
+        // Test with basic_auth taking precedence
+        let result = ExporterBuilder::new()
+            .with_endpoint("https://test.com")
+            .with_header("Authorization", "Bearer from-header")
+            .with_basic_auth("user", "pass")
+            .build();
+
+        // The basic_auth should take precedence (creating "Basic dXNlcjpwYXNz")
         assert!(matches!(result, Err(Error::OtlpExporter(_))));
     }
 }
