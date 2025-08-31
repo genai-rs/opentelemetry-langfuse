@@ -113,6 +113,7 @@ See the [examples](./examples) directory for complete working examples:
 
 - [`basic.rs`](./examples/basic.rs) - Simple usage with environment variables
 - [`manual_config.rs`](./examples/manual_config.rs) - Manual configuration without env vars
+- [`otel_env.rs`](./examples/otel_env.rs) - Using standard OpenTelemetry environment variables
 
 ## License
 
