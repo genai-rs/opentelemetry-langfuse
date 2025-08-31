@@ -153,16 +153,16 @@ async fn test_base_endpoint() -> Result<(), Box<dyn Error>> {
     // Set OTEL environment variables with base endpoint (will append /v1/traces)
     std::env::set_var(
         "OTEL_EXPORTER_OTLP_ENDPOINT",
-        format!("{}/api/public", host),
+        format!("{}/api/public/otel", host),
     );
     std::env::set_var(
         "OTEL_EXPORTER_OTLP_HEADERS",
         format!("Authorization=Basic {}", credentials),
     );
 
-    println!("  OTEL_EXPORTER_OTLP_ENDPOINT={}/api/public", host);
+    println!("  OTEL_EXPORTER_OTLP_ENDPOINT={}/api/public/otel", host);
     println!("  OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <credentials>");
-    println!("  (Will append /v1/traces to endpoint)");
+    println!("  (Will append /v1/traces to endpoint, resulting in /api/public/otel/v1/traces)");
 
     // Create exporter using OTEL environment variables
     let exporter = exporter_from_otel_env()?;
