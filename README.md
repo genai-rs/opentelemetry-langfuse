@@ -30,7 +30,7 @@ opentelemetry-langfuse = "*"
 ```rust
 use opentelemetry::global;
 use opentelemetry_langfuse::exporter_from_env;
-use opentelemetry_sdk::trace::TracerProvider;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use opentelemetry_sdk::Resource;
 use opentelemetry::KeyValue;
 
@@ -38,11 +38,11 @@ use opentelemetry::KeyValue;
 let exporter = exporter_from_env()?;
 
 // Build your tracer provider with the exporter
-let provider = TracerProvider::builder()
-    .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
-    .with_resource(Resource::new(vec![
+let provider = SdkTracerProvider::builder()
+    .with_batch_exporter(exporter)
+    .with_resource(Resource::builder().with_attributes(vec![
         KeyValue::new("service.name", "my-service"),
-    ]))
+    ]).build())
     .build();
 
 // Set as global provider and start tracing
@@ -79,13 +79,13 @@ OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64_encoded_credentials>"
 ⚠️ **Important**: Do NOT use `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public` as this would create `/api/public/v1/traces` which Langfuse does not accept.
 
 ### Option 3: Automatic Fallback
-Use `exporter_from_env()` for automatic fallback. Priority order:
+Use `exporter_from_env()` for automatic fallback with sensible defaults. Priority order:
 
 **For endpoint:**
 1. `LANGFUSE_HOST` (appends `/api/public/otel`)
 2. `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
 3. `OTEL_EXPORTER_OTLP_ENDPOINT` (appends `/v1/traces`)
-4. Default: `https://cloud.langfuse.com/api/public/otel`
+4. **Default**: `https://cloud.langfuse.com/api/public/otel` (when no endpoint variables are set)
 
 **For authentication:**
 1. `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`
