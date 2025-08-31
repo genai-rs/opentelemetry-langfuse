@@ -13,7 +13,7 @@ use tokio::time::sleep;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Load environment variables from .env file if present
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
 
     // Create the Langfuse exporter from environment variables
     // This requires:
