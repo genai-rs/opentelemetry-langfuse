@@ -51,27 +51,15 @@ impl ExporterBuilder {
         self
     }
 
-    /// Sets the Langfuse credentials directly.
+    /// Sets the Basic authentication credentials.
     ///
     /// # Arguments
     ///
     /// * `public_key` - The Langfuse public key
     /// * `secret_key` - The Langfuse secret key
-    pub fn with_credentials(mut self, public_key: &str, secret_key: &str) -> Self {
+    pub fn with_basic_auth(mut self, public_key: &str, secret_key: &str) -> Self {
         self.auth_header = Some(auth::build_auth_header(public_key, secret_key));
         self
-    }
-
-    /// Sets the Basic authentication credentials.
-    ///
-    /// This is an alias for `with_credentials` that better matches HTTP terminology.
-    ///
-    /// # Arguments
-    ///
-    /// * `username` - The username (Langfuse public key)
-    /// * `password` - The password (Langfuse secret key)
-    pub fn with_basic_auth(self, username: &str, password: &str) -> Self {
-        self.with_credentials(username, password)
     }
 
     /// Sets the Langfuse host URL.
@@ -145,9 +133,9 @@ impl ExporterBuilder {
         // Only use OTEL endpoints if LANGFUSE_HOST was not explicitly set
         if env::var(ENV_LANGFUSE_HOST).is_err() {
             // No LANGFUSE_HOST set, check for OTEL endpoints
-            if let Ok(endpoint) = env::var(ENV_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT) {
+            if let Ok(endpoint) = env::var(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT) {
                 self.endpoint = Some(endpoint);
-            } else if let Ok(endpoint) = env::var(ENV_OTEL_EXPORTER_OTLP_ENDPOINT) {
+            } else if let Ok(endpoint) = env::var(OTEL_EXPORTER_OTLP_ENDPOINT) {
                 // OTEL_EXPORTER_OTLP_ENDPOINT needs /v1/traces appended
                 self.endpoint = Some(format!("{}/v1/traces", endpoint.trim_end_matches('/')));
             } else {
@@ -164,8 +152,8 @@ impl ExporterBuilder {
             self.auth_header = Some(auth);
         } else {
             // Fall back to OTEL headers if Langfuse credentials not available
-            if let Ok(headers) = env::var(ENV_OTEL_EXPORTER_OTLP_TRACES_HEADERS)
-                .or_else(|_| env::var(ENV_OTEL_EXPORTER_OTLP_HEADERS))
+            if let Ok(headers) = env::var(OTEL_EXPORTER_OTLP_TRACES_HEADERS)
+                .or_else(|_| env::var(OTEL_EXPORTER_OTLP_HEADERS))
             {
                 // Parse OTEL headers format: "key1=value1,key2=value2"
                 for header_pair in headers.split(',') {
@@ -234,22 +222,144 @@ impl Default for ExporterBuilder {
     }
 }
 
-/// Creates a Langfuse OTLP exporter using environment variables.
+/// Creates a Langfuse OTLP exporter using Langfuse-specific environment variables.
 ///
-/// This is a convenience function that reads configuration from environment variables.
+/// This function only looks for Langfuse-specific environment variables:
+/// - `LANGFUSE_HOST`: The base URL of your Langfuse instance (defaults to https://cloud.langfuse.com)
+/// - `LANGFUSE_PUBLIC_KEY`: Your Langfuse public key (required)
+/// - `LANGFUSE_SECRET_KEY`: Your Langfuse secret key (required)
 ///
-/// Langfuse-specific variables take precedence over standard OpenTelemetry variables:
+/// The OTLP endpoint will be constructed as `{LANGFUSE_HOST}/api/public/otel`.
+///
+/// # Returns
+///
+/// Returns a Result containing the configured SpanExporter if successful.
+///
+/// # Example
+///
+/// ```no_run
+/// use opentelemetry_langfuse::exporter_from_langfuse_env;
+///
+/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let exporter = exporter_from_langfuse_env()?;
+/// // Use the exporter with your TracerProvider setup
+/// # Ok(())
+/// # }
+/// ```
+pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
+    let endpoint = endpoint::build_otlp_endpoint_from_env()?;
+    let auth = auth::build_auth_header_from_env()?;
+    
+    ExporterBuilder::new()
+        .with_endpoint(endpoint)
+        .with_auth_header(auth)
+        .build()
+}
+
+/// Creates a Langfuse OTLP exporter using standard OpenTelemetry environment variables.
+///
+/// This function follows the [OpenTelemetry Protocol Exporter specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md#endpoint-urls-for-otlphttp)
+/// and only looks for standard OTEL environment variables:
 ///
 /// For endpoint (in order of precedence):
-/// - LANGFUSE_HOST: The base URL of your Langfuse instance
-/// - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: Direct OTLP endpoint URL
-/// - OTEL_EXPORTER_OTLP_ENDPOINT: Base OTLP endpoint (will append /v1/traces)
-/// - Default: https://cloud.langfuse.com
+/// - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`: Direct OTLP traces endpoint URL
+/// - `OTEL_EXPORTER_OTLP_ENDPOINT`: Base OTLP endpoint (will append `/v1/traces`)
 ///
-/// For authentication (in order of precedence):
-/// - LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY: Your Langfuse credentials
-/// - OTEL_EXPORTER_OTLP_TRACES_HEADERS: Headers including Authorization
-/// - OTEL_EXPORTER_OTLP_HEADERS: Headers including Authorization
+/// For Langfuse, use one of these configurations:
+/// - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://cloud.langfuse.com/api/public/otel`
+/// - `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel` (creates `/api/public/otel/v1/traces`)
+///
+/// ⚠️ Do NOT use `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public` as this would
+/// create `/api/public/v1/traces` which Langfuse does not accept.
+///
+/// For authentication headers (in order of precedence):
+/// - `OTEL_EXPORTER_OTLP_TRACES_HEADERS`: Headers for traces endpoint
+/// - `OTEL_EXPORTER_OTLP_HEADERS`: General OTLP headers
+///
+/// Headers should be in the format: `key1=value1,key2=value2`
+///
+/// # Returns
+///
+/// Returns a Result containing the configured SpanExporter if successful.
+///
+/// # Example
+///
+/// ```no_run
+/// use opentelemetry_langfuse::exporter_from_otel_env;
+///
+/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// // Set environment variables:
+/// // OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public
+/// // OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <base64_encoded_credentials>
+/// let exporter = exporter_from_otel_env()?;
+/// // Use the exporter with your TracerProvider setup
+/// # Ok(())
+/// # }
+/// ```
+pub fn exporter_from_otel_env() -> Result<SpanExporter> {
+    // Get endpoint from OTEL environment variables
+    let endpoint = if let Ok(endpoint) = env::var(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT) {
+        endpoint
+    } else if let Ok(endpoint) = env::var(OTEL_EXPORTER_OTLP_ENDPOINT) {
+        // OTEL_EXPORTER_OTLP_ENDPOINT needs /v1/traces appended
+        format!("{}/v1/traces", endpoint.trim_end_matches('/'))
+    } else {
+        return Err(Error::MissingEnvironmentVariable("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT"));
+    };
+
+    // Parse headers from OTEL environment variables
+    let headers_str = env::var(OTEL_EXPORTER_OTLP_TRACES_HEADERS)
+        .or_else(|_| env::var(OTEL_EXPORTER_OTLP_HEADERS))
+        .map_err(|_| Error::MissingEnvironmentVariable("OTEL_EXPORTER_OTLP_TRACES_HEADERS or OTEL_EXPORTER_OTLP_HEADERS"))?;
+
+    let mut builder = ExporterBuilder::new().with_endpoint(endpoint);
+    
+    // Parse OTEL headers format: "key1=value1,key2=value2"
+    for header_pair in headers_str.split(',') {
+        if let Some((key, value)) = header_pair.split_once('=') {
+            let key = key.trim().to_string();
+            let value = value.trim().to_string();
+            
+            // Check if this is an Authorization header
+            if key.eq_ignore_ascii_case("authorization") {
+                builder = builder.with_auth_header(value);
+            } else {
+                builder = builder.with_header(key, value);
+            }
+        }
+    }
+
+    builder.build()
+}
+
+/// Creates a Langfuse OTLP exporter using environment variables with automatic fallback.
+///
+/// This function provides automatic fallback between Langfuse-specific and standard OpenTelemetry
+/// environment variables. Langfuse-specific variables take precedence over standard OTEL variables.
+///
+/// ## Environment Variable Priority
+///
+/// ### For endpoint (in order of precedence):
+/// 1. `LANGFUSE_HOST`: The base URL of your Langfuse instance (appends `/api/public/otel`)
+/// 2. `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`: Direct OTLP traces endpoint URL
+/// 3. `OTEL_EXPORTER_OTLP_ENDPOINT`: Base OTLP endpoint (appends `/v1/traces`)
+/// 4. Default: `https://cloud.langfuse.com/api/public/otel`
+///
+/// ### For authentication (in order of precedence):
+/// 1. `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`: Your Langfuse credentials
+/// 2. `OTEL_EXPORTER_OTLP_TRACES_HEADERS`: Headers including Authorization
+/// 3. `OTEL_EXPORTER_OTLP_HEADERS`: Headers including Authorization
+///
+/// ## Usage Recommendations
+///
+/// - Use `exporter_from_langfuse_env()` if you're exclusively using Langfuse-specific variables
+/// - Use `exporter_from_otel_env()` if you're following standard OpenTelemetry configuration
+/// - Use this function if you want automatic fallback between both configuration styles
+///
+/// ## References
+///
+/// - [Langfuse OpenTelemetry Integration](https://langfuse.com/integrations/native/opentelemetry)
+/// - [OpenTelemetry Protocol Exporter Specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md#endpoint-urls-for-otlphttp)
 ///
 /// # Returns
 ///
@@ -300,6 +410,147 @@ pub fn exporter_from_env() -> Result<SpanExporter> {
 pub fn exporter(host: &str, public_key: &str, secret_key: &str) -> Result<SpanExporter> {
     ExporterBuilder::new()
         .with_host(host)
-        .with_credentials(public_key, secret_key)
+        .with_basic_auth(public_key, secret_key)
         .build()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serial_test::serial;
+
+    #[test]
+    #[serial]
+    fn test_exporter_from_langfuse_env() {
+        // Set up Langfuse environment variables
+        env::set_var("LANGFUSE_HOST", "https://test.langfuse.com");
+        env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
+        env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
+
+        // The function should not panic and return a result
+        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        let result = exporter_from_langfuse_env();
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+
+        // Clean up
+        env::remove_var("LANGFUSE_HOST");
+        env::remove_var("LANGFUSE_PUBLIC_KEY");
+        env::remove_var("LANGFUSE_SECRET_KEY");
+    }
+
+    #[test]
+    #[serial]
+    fn test_exporter_from_langfuse_env_missing_credentials() {
+        // Set only host, no credentials
+        env::set_var("LANGFUSE_HOST", "https://test.langfuse.com");
+
+        // Should fail with MissingEnvironmentVariable error
+        let result = exporter_from_langfuse_env();
+        assert!(matches!(result, Err(Error::MissingEnvironmentVariable(_))));
+
+        // Clean up
+        env::remove_var("LANGFUSE_HOST");
+    }
+
+    #[test]
+    #[serial]
+    fn test_exporter_from_otel_env() {
+        // Set up OTEL environment variables
+        env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://test.com");
+        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer test-token");
+
+        // The function should not panic and return a result
+        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        let result = exporter_from_otel_env();
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+
+        // Clean up
+        env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
+        env::remove_var("OTEL_EXPORTER_OTLP_HEADERS");
+    }
+
+    #[test]
+    #[serial]
+    fn test_exporter_from_otel_env_traces_endpoint() {
+        // Set up OTEL traces-specific endpoint
+        env::set_var("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "https://test.com/v1/traces");
+        env::set_var("OTEL_EXPORTER_OTLP_TRACES_HEADERS", "Authorization=Bearer test-token");
+
+        // The function should not panic and return a result
+        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        let result = exporter_from_otel_env();
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+
+        // Clean up
+        env::remove_var("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT");
+        env::remove_var("OTEL_EXPORTER_OTLP_TRACES_HEADERS");
+    }
+
+    #[test]
+    #[serial]
+    fn test_exporter_from_otel_env_missing_endpoint() {
+        // Set only headers, no endpoint
+        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer test-token");
+
+        // Should fail with MissingEnvironmentVariable error
+        let result = exporter_from_otel_env();
+        assert!(matches!(result, Err(Error::MissingEnvironmentVariable(_))));
+
+        // Clean up
+        env::remove_var("OTEL_EXPORTER_OTLP_HEADERS");
+    }
+
+    #[test]
+    #[serial]
+    fn test_exporter_from_otel_env_missing_headers() {
+        // Set only endpoint, no headers
+        env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://test.com");
+
+        // Should fail with MissingEnvironmentVariable error
+        let result = exporter_from_otel_env();
+        assert!(matches!(result, Err(Error::MissingEnvironmentVariable(_))));
+
+        // Clean up
+        env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
+    }
+
+    #[test]
+    #[serial]
+    fn test_exporter_from_env_langfuse_precedence() {
+        // Set both Langfuse and OTEL variables
+        env::set_var("LANGFUSE_HOST", "https://langfuse.test.com");
+        env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
+        env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
+        env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://otel.test.com");
+        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer otel-token");
+
+        // The function should not panic and return a result
+        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        let result = exporter_from_env();
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+
+        // Clean up
+        env::remove_var("LANGFUSE_HOST");
+        env::remove_var("LANGFUSE_PUBLIC_KEY");
+        env::remove_var("LANGFUSE_SECRET_KEY");
+        env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
+        env::remove_var("OTEL_EXPORTER_OTLP_HEADERS");
+    }
+
+    #[test]
+    #[serial]
+    fn test_exporter_from_env_otel_fallback() {
+        // Set only OTEL variables (no Langfuse variables)
+        env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "https://otel.test.com");
+        env::set_var("OTEL_EXPORTER_OTLP_HEADERS", "Authorization=Bearer otel-token");
+
+        // The function should not panic and return a result
+        // In tests, this will fail with OtlpExporter error due to missing HTTP client
+        let result = exporter_from_env();
+        assert!(matches!(result, Err(Error::OtlpExporter(_))));
+
+        // Clean up
+        env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
+        env::remove_var("OTEL_EXPORTER_OTLP_HEADERS");
+    }
 }

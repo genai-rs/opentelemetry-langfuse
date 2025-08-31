@@ -6,17 +6,17 @@
 [![MSRV](https://img.shields.io/badge/MSRV-1.82-blue)](https://blog.rust-lang.org/2024/10/17/Rust-1.82.0.html)
 [![License](https://img.shields.io/crates/l/opentelemetry-langfuse)](./LICENSE-MIT)
 
-OpenTelemetry exporter for [Langfuse](https://langfuse.com), the open-source LLM observability platform.
+OpenTelemetry integration for [Langfuse](https://langfuse.com), the open-source LLM observability platform.
 
-This crate provides a configured OTLP exporter that sends OpenTelemetry traces to Langfuse. For more information about OpenTelemetry support in Langfuse, see the [official Langfuse OpenTelemetry documentation](https://langfuse.com/integrations/native/opentelemetry).
+This crate provides OpenTelemetry components and utilities for integrating with Langfuse, enabling comprehensive observability for LLM applications. For more information about OpenTelemetry support in Langfuse, see the [official Langfuse OpenTelemetry documentation](https://langfuse.com/integrations/native/opentelemetry).
 
 ## Features
 
-- 🎯 **Focused** - Provides a configured OTLP exporter specifically for Langfuse
+- 🚀 **OTLP Exporter** - Configured exporter for sending traces to Langfuse
 - 🔌 **Composable** - Integrates with your existing OpenTelemetry setup
 - 🏗️ **Builder Pattern** - Flexible configuration API
 - 🔐 **Secure** - Handles authentication with Langfuse credentials
-- 📦 **Lightweight** - Minimal dependencies, does one thing well
+- 🌐 **Dual Configuration** - Supports both Langfuse-specific and standard OTEL environment variables
 
 ## Installation
 
@@ -51,27 +51,46 @@ global::set_tracer_provider(provider);
 
 ## Configuration
 
-The exporter can be configured using environment variables. Langfuse-specific variables take precedence over standard OpenTelemetry variables:
+The exporter can be configured using environment variables. You have three options:
 
-### Langfuse Variables (Recommended)
+### Option 1: Langfuse-Specific Variables
+Use `exporter_from_langfuse_env()` with these variables:
 ```bash
 LANGFUSE_PUBLIC_KEY=pk-lf-...              # Your public key
 LANGFUSE_SECRET_KEY=sk-lf-...              # Your secret key
 LANGFUSE_HOST=https://cloud.langfuse.com   # Optional: Defaults to cloud instance
 ```
 
-### Standard OpenTelemetry Variables (Fallback)
-If Langfuse-specific variables are not set, the exporter will check for standard OTEL variables:
-
+### Option 2: Standard OpenTelemetry Variables
+Use `exporter_from_otel_env()` following the [OTLP Exporter specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md#endpoint-urls-for-otlphttp):
 ```bash
-# For endpoint (used only if LANGFUSE_HOST is not set)
+# For endpoint (use ONE of these):
+# Option A: Direct traces endpoint (recommended)
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://cloud.langfuse.com/api/public/otel
-# or
-OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public  # /v1/traces will be appended
 
-# For authentication (used only if LANGFUSE_PUBLIC_KEY/SECRET_KEY are not set)
+# Option B: Base endpoint that works with Langfuse
+OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel  # /v1/traces will be appended
+# This creates: https://cloud.langfuse.com/api/public/otel/v1/traces (which Langfuse accepts)
+
+# For authentication
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64_encoded_credentials>"
 ```
+
+⚠️ **Important**: Do NOT use `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public` as this would create `/api/public/v1/traces` which Langfuse does not accept.
+
+### Option 3: Automatic Fallback
+Use `exporter_from_env()` for automatic fallback. Priority order:
+
+**For endpoint:**
+1. `LANGFUSE_HOST` (appends `/api/public/otel`)
+2. `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
+3. `OTEL_EXPORTER_OTLP_ENDPOINT` (appends `/v1/traces`)
+4. Default: `https://cloud.langfuse.com/api/public/otel`
+
+**For authentication:**
+1. `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`
+2. `OTEL_EXPORTER_OTLP_TRACES_HEADERS`
+3. `OTEL_EXPORTER_OTLP_HEADERS`
 
 ## Manual Configuration
 
@@ -83,7 +102,7 @@ use std::time::Duration;
 
 let exporter = ExporterBuilder::new()
     .with_host("https://cloud.langfuse.com")
-    .with_basic_auth("pk-lf-...", "sk-lf-...")  // or with_credentials()
+    .with_basic_auth("pk-lf-...", "sk-lf-...")
     .with_timeout(Duration::from_secs(10))
     .build()?;
 ```

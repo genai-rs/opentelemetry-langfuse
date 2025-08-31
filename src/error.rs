@@ -1,5 +1,6 @@
 //! Error types for the opentelemetry-langfuse library.
 
+use opentelemetry_sdk::trace::TraceError;
 use thiserror::Error;
 
 /// Error type for opentelemetry-langfuse operations.
@@ -15,11 +16,11 @@ pub enum Error {
 
     /// OpenTelemetry trace error.
     #[error("OpenTelemetry error: {0}")]
-    OpenTelemetry(#[from] opentelemetry::trace::TraceError),
+    OpenTelemetry(#[from] TraceError),
 
-    /// OTLP exporter error.
+    /// OTLP exporter build error.
     #[error("OTLP exporter error: {0}")]
-    OtlpExporter(#[from] opentelemetry_otlp::Error),
+    OtlpExporter(#[from] opentelemetry_otlp::ExporterBuildError),
 }
 
 /// Result type alias for opentelemetry-langfuse operations.

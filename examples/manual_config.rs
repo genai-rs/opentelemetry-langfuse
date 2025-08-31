@@ -5,7 +5,7 @@ use opentelemetry::global;
 use opentelemetry::trace::{Span, Tracer};
 use opentelemetry::KeyValue;
 use opentelemetry_langfuse::ExporterBuilder;
-use opentelemetry_sdk::trace::TracerProvider;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use opentelemetry_sdk::Resource;
 use std::error::Error;
 use std::time::Duration;
@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Manual configuration using the builder
     let exporter = ExporterBuilder::new()
         .with_host("https://cloud.langfuse.com")
-        .with_credentials(
+        .with_basic_auth(
             &std::env::var("LANGFUSE_PUBLIC_KEY").expect("LANGFUSE_PUBLIC_KEY not set"),
             &std::env::var("LANGFUSE_SECRET_KEY").expect("LANGFUSE_SECRET_KEY not set"),
         )
@@ -27,13 +27,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .build()?;
 
     // Create tracer provider with the configured exporter
-    let tracer_provider = TracerProvider::builder()
-        .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
-        .with_resource(Resource::new(vec![
+    let tracer_provider = SdkTracerProvider::builder()
+        .with_batch_exporter(exporter)
+        .with_resource(Resource::builder().with_attributes(vec![
             KeyValue::new("service.name", "manual-config-example"),
             KeyValue::new("environment", "development"),
             KeyValue::new("version", "1.0.0"),
-        ]))
+        ]).build())
         .build();
 
     // Set as global provider
@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Explicit shutdown using the provider
     drop(tracer_provider);
-    global::shutdown_tracer_provider();
+    // Provider will be shutdown when it goes out of scope
     sleep(Duration::from_secs(1)).await;
 
     // Verify traces were sent to Langfuse
