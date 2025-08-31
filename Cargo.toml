@@ -40,6 +40,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = "0.4"
 serial_test = "3.0"
+langfuse-ergonomic = "0.2"
 
 [features]
 default = []
