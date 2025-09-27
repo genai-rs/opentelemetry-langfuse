@@ -47,11 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix rustdoc bare URLs warning
 - Fix clippy linting issues
 - Document that OTEL_EXPORTER_OTLP_COMPRESSION is not supported
-- apply cargo fmt and update CLAUDE.md with CI check instructions
+- apply cargo fmt and update automation guide with CI check instructions
 - remove test_endpoint_construction.rs example
 - clarify error variant usage
 - add references to Langfuse OpenTelemetry documentation
 - replace abandoned dotenv with dotenvy
 - [**breaking**] provide only Langfuse exporter, not full tracer
 - add constants for environment variables
-- Add CLAUDE.md with development instructions
+- Add automation guide with development instructions
