@@ -1,4 +1,4 @@
-#***REMOVED*** Development Instructions
+# Automation Development Instructions
 
 ## Important: Development Workflow
 
