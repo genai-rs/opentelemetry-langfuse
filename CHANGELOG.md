@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Default HTTP client creation to prevent `NoHttpClient` errors
+- Comprehensive examples for different usage patterns:
+  - `sync_simple` - SimpleSpanProcessor with immediate export
+  - `sync_batch` - Batch processing in mostly synchronous applications
+  - `async_batch` - Full async with Tokio and batch processing
+  - `custom_config` - Advanced configuration with proxy, TLS, and headers
+
+### Changed
+
+- Exporter now provides a default `reqwest::Client` when none is specified
+- Improved documentation to clarify async runtime requirements for HTTP exporters
+
 ## [0.3.1](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.3.0...v0.3.1) - 2025-08-31
 
 ### Fixed

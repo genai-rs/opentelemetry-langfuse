@@ -21,6 +21,10 @@ pub enum Error {
     /// OTLP exporter build error.
     #[error("OTLP exporter error: {0}")]
     OtlpExporter(#[from] opentelemetry_otlp::ExporterBuildError),
+
+    /// Exporter error for async operations.
+    #[error("Exporter error: {0}")]
+    ExporterError(String),
 }
 
 /// Result type alias for opentelemetry-langfuse operations.
