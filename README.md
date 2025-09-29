@@ -17,6 +17,7 @@ This crate provides OpenTelemetry components and utilities for integrating with 
 - 🏗️ **Builder Pattern** - Flexible configuration API
 - 🔐 **Secure** - Handles authentication with Langfuse credentials
 - 🌐 **Dual Configuration** - Supports both Langfuse-specific and standard OTEL environment variables
+- ⚡ **Zero Async Dependencies** - No runtime dependencies; works with any async runtime you choose
 
 ## Installation
 
@@ -24,6 +25,14 @@ This crate provides OpenTelemetry components and utilities for integrating with 
 [dependencies]
 opentelemetry-langfuse = "*"
 ```
+
+### TLS Configuration
+
+The OTLP exporter (via `opentelemetry-otlp`) automatically includes TLS support through `reqwest` with `rustls-tls`. This works out of the box for HTTPS connections to Langfuse.
+
+If you need a different TLS implementation:
+1. **For custom HTTP clients**: When using `with_http_client()`, configure TLS in your `reqwest::Client`
+2. **For native-tls**: You may need to configure your application's dependencies to use `native-tls` instead of `rustls`
 
 ## Quick Start
 
@@ -47,6 +56,29 @@ let provider = SdkTracerProvider::builder()
 
 // Set as global provider and start tracing
 global::set_tracer_provider(provider);
+```
+
+## Examples
+
+We provide comprehensive examples for different use cases:
+
+### Synchronous Applications
+- [`sync_simple`](examples/sync_simple.rs) - Simple synchronous tracing with immediate export (good for development/testing)
+- [`sync_batch`](examples/sync_batch.rs) - Batch processing in mostly synchronous applications (requires minimal async runtime)
+
+### Asynchronous Applications
+- [`async_batch`](examples/async_batch.rs) - Full async with Tokio and batch processing (recommended for production)
+
+### Configuration
+- [`custom_config`](examples/custom_config.rs) - Advanced configuration including custom HTTP client, proxy, TLS, and headers
+
+Run any example with:
+```bash
+export LANGFUSE_PUBLIC_KEY="pk-lf-..."
+export LANGFUSE_SECRET_KEY="sk-lf-..."
+export LANGFUSE_HOST="https://cloud.langfuse.com"
+
+cargo run --example <example_name>
 ```
 
 ## Configuration
@@ -107,11 +139,41 @@ let exporter = ExporterBuilder::new()
     .build()?;
 ```
 
+## Async Runtime Considerations
+
+This crate has zero async dependencies, making it compatible with any async runtime (Tokio, async-std, etc.).
+
+**Important:** HTTP exporters always require an async runtime for network operations, even when using `SimpleSpanProcessor`. This is because the underlying HTTP client (reqwest) needs an async runtime to perform network I/O.
+
+When using `BatchSpanProcessor` (recommended for production), the async runtime is also needed for the batching mechanism itself. For applications without an existing async runtime, you'll need to create one - see the `sync_batch` example for how to do this with minimal overhead.
+
+```rust
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use opentelemetry_langfuse::exporter_from_env;
+    use opentelemetry_sdk::trace::SdkTracerProvider;
+
+    // Create the exporter
+    let exporter = exporter_from_env()?;
+
+    // Use with batch processing (recommended for production)
+    let provider = SdkTracerProvider::builder()
+        .with_batch_exporter(exporter)
+        .build();
+
+    // The batch processor will handle spans asynchronously
+    Ok(())
+}
+```
+
+See our examples for different scenarios:
+- [`async_batch`](examples/async_batch.rs) - Full async application with Tokio
+- [`sync_batch`](examples/sync_batch.rs) - Mostly synchronous app with batch processing
+- [`sync_simple`](examples/sync_simple.rs) - Simple immediate export (still needs async runtime for HTTP)
+
 ### Custom HTTP Client
 
-By default, the exporter creates a new `reqwest::Client` with rustls TLS support, which is suitable for most use cases and works with HTTPS endpoints out of the box.
-
-You can provide your own client for advanced configurations:
+By default, the OTLP exporter will use its own HTTP client with TLS support. You can provide a custom client for advanced configurations:
 - Proxy settings
 - Custom root certificates
 - Connection pooling
@@ -121,6 +183,7 @@ You can provide your own client for advanced configurations:
 use opentelemetry_langfuse::ExporterBuilder;
 use std::time::Duration;
 
+// Note: reqwest version should match what opentelemetry-otlp uses (0.12)
 let custom_client = reqwest::Client::builder()
     .timeout(Duration::from_secs(30))
     .proxy(reqwest::Proxy::http("http://proxy.example.com:8080")?)
@@ -135,14 +198,6 @@ let exporter = ExporterBuilder::new()
 
 **Note on TLS**: The crate includes `rustls-tls` by default for HTTPS support. If you're building a custom client or have specific TLS requirements, ensure your `reqwest` client is configured with appropriate TLS features.
 
-## Examples
-
-See the [examples](./examples) directory for complete working examples:
-
-- [`basic.rs`](./examples/basic.rs) - Simple usage with environment variables
-- [`manual_config.rs`](./examples/manual_config.rs) - Manual configuration without env vars
-- [`otel_env.rs`](./examples/otel_env.rs) - Using standard OpenTelemetry environment variables
-- [`custom_http_client.rs`](./examples/custom_http_client.rs) - Using a custom HTTP client for proxy or advanced configurations
 
 ## License
 

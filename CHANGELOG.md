@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add experimental async runtime support via `experimental_async` feature flag
+  - New `AsyncRuntimeExporter` wrapper that ensures async operations have proper runtime context
+  - Solves "no reactor running" panic when using batch processors outside async context
+  - Helper functions for easy setup: `tracer_provider_with_async_batch()`, `init_tracing_with_async_batch()`
+  - Comprehensive documentation and examples for async export usage
+  - Tests to verify runtime panic prevention
+
 ## [0.3.1](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.3.0...v0.3.1) - 2025-08-31
 
 ### Fixed
