@@ -269,11 +269,12 @@ impl ExporterBuilder {
         }
 
         // Build HTTP config with client
-        let http_client = self.http_client.unwrap_or_default();
+        // We need to provide a client - opentelemetry-otlp doesn't create one by default
+        let client = self.http_client.unwrap_or_default();
 
         let mut http_config = SpanExporter::builder()
             .with_http()
-            .with_http_client(http_client)
+            .with_http_client(client)
             .with_endpoint(endpoint)
             .with_headers(headers);
 
