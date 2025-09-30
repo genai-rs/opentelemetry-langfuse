@@ -12,12 +12,12 @@ This crate provides OpenTelemetry components and utilities for integrating with 
 
 ## Features
 
-- 🚀 **OTLP Exporter** - Configured exporter for sending traces to Langfuse
-- 🔌 **Composable** - Integrates with your existing OpenTelemetry setup
-- 🏗️ **Builder Pattern** - Flexible configuration API
-- 🔐 **Secure** - Handles authentication with Langfuse credentials
-- 🌐 **Dual Configuration** - Supports both Langfuse-specific and standard OTEL environment variables
-- ⚡ **Zero Async Dependencies** - No runtime dependencies; works with any async runtime you choose
+- OTLP Exporter - Configured exporter for sending traces to Langfuse
+- Composable - Integrates with your existing OpenTelemetry setup
+- Builder Pattern - Flexible configuration API
+- Secure - Handles authentication with Langfuse credentials
+- Dual Configuration - Supports both Langfuse-specific and standard OTEL environment variables
+- Flexible Runtime Configuration - Does not force specific Tokio runtime features
 
 ## Installation
 
@@ -28,11 +28,9 @@ opentelemetry-langfuse = "*"
 
 ### TLS Configuration
 
-The OTLP exporter (via `opentelemetry-otlp`) automatically includes TLS support through `reqwest` with `rustls-tls`. This works out of the box for HTTPS connections to Langfuse.
+TLS support is provided through the `opentelemetry-otlp` crate's `reqwest-client` feature, which includes `rustls` by default. This works out of the box for HTTPS connections to Langfuse.
 
-If you need a different TLS implementation:
-1. **For custom HTTP clients**: When using `with_http_client()`, configure TLS in your `reqwest::Client`
-2. **For native-tls**: You may need to configure your application's dependencies to use `native-tls` instead of `rustls`
+If you need a different TLS implementation, configure it in your custom `reqwest::Client` when using `with_http_client()`.
 
 ## Quick Start
 
@@ -108,7 +106,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel  # /v1/tr
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64_encoded_credentials>"
 ```
 
-⚠️ **Important**: Do NOT use `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public` as this would create `/api/public/v1/traces` which Langfuse does not accept.
+**Important**: Do NOT use `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public` as this would create `/api/public/v1/traces` which Langfuse does not accept.
 
 ### Option 3: Automatic Fallback
 Use `exporter_from_env()` for automatic fallback with sensible defaults. Priority order:
@@ -141,9 +139,9 @@ let exporter = ExporterBuilder::new()
 
 ## Async Runtime Considerations
 
-This crate has zero async dependencies, making it compatible with any async runtime (Tokio, async-std, etc.).
+This crate does not directly specify async runtime features, allowing flexibility in how you configure your async runtime.
 
-**Important:** HTTP exporters always require an async runtime for network operations, even when using `SimpleSpanProcessor`. This is because the underlying HTTP client (reqwest) needs an async runtime to perform network I/O.
+**Important:** HTTP exporters require an async runtime for network operations (the underlying HTTP client is `reqwest`, which depends on Tokio). The `opentelemetry-otlp` crate's `reqwest-client` feature brings in Tokio as a transitive dependency.
 
 When using `BatchSpanProcessor` (recommended for production), the async runtime is also needed for the batching mechanism itself. For applications without an existing async runtime, you'll need to create one - see the `sync_batch` example for how to do this with minimal overhead.
 
@@ -196,7 +194,7 @@ let exporter = ExporterBuilder::new()
     .build()?;
 ```
 
-**Note on TLS**: The crate includes `rustls-tls` by default for HTTPS support. If you're building a custom client or have specific TLS requirements, ensure your `reqwest` client is configured with appropriate TLS features.
+**Note on TLS**: TLS support comes from the `opentelemetry-otlp` crate's `reqwest-client` feature. If you're building a custom client with specific TLS requirements, ensure your `reqwest` client is configured with appropriate TLS features.
 
 
 ## License
