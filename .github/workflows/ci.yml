@@ -81,6 +81,10 @@ jobs:
         
       - name: Run tests (no default features)
         run: cargo test --verbose --no-default-features
+        env:
+          LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
         
       - name: Build examples
         run: cargo build --examples --all-features
