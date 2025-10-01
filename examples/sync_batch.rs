@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     use opentelemetry::global;
     use opentelemetry::trace::{Span, SpanKind, Tracer};
     use opentelemetry::KeyValue;
-    use opentelemetry_langfuse::exporter_from_env;
+    use opentelemetry_langfuse::ExporterBuilder;
     use opentelemetry_sdk::trace::SdkTracerProvider;
     use opentelemetry_sdk::Resource;
     use std::thread;
@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _guard = runtime.enter();
 
     // Create the Langfuse exporter from environment variables
-    let exporter = exporter_from_env()?;
+    let exporter = ExporterBuilder::from_env()?.build()?;
 
     // Build a tracer provider with BatchSpanProcessor
     // This will batch spans and export them periodically

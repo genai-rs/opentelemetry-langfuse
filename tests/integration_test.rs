@@ -18,7 +18,7 @@ use chrono::Utc;
 use langfuse_ergonomic::client::LangfuseClient;
 use opentelemetry::trace::{Span, SpanKind, Tracer, TracerProvider};
 use opentelemetry::KeyValue;
-use opentelemetry_langfuse::exporter_from_env;
+use opentelemetry_langfuse::ExporterBuilder;
 use opentelemetry_sdk::trace::{
     span_processor_with_async_runtime::BatchSpanProcessor, SdkTracerProvider, SimpleSpanProcessor,
 };
@@ -86,7 +86,7 @@ async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> 
     let test_id = generate_test_id("simple");
 
     // Create exporter with SimpleSpanProcessor (exports immediately, blocking)
-    let exporter = exporter_from_env()?;
+    let exporter = ExporterBuilder::from_env()?.build()?;
     let provider = SdkTracerProvider::builder()
         .with_resource(
             Resource::builder()
@@ -138,7 +138,7 @@ async fn test_batch_span_processor() -> Result<(), Box<dyn std::error::Error>> {
     // Create exporter with BatchSpanProcessor (async runtime version)
     // This uses the experimental span_processor_with_async_runtime module
     // which properly integrates with Tokio runtime
-    let exporter = exporter_from_env()?;
+    let exporter = ExporterBuilder::from_env()?.build()?;
     let provider = SdkTracerProvider::builder()
         .with_resource(
             Resource::builder()
