@@ -16,7 +16,6 @@ This crate provides OpenTelemetry components and utilities for integrating with 
 - Composable - Integrates with your existing OpenTelemetry setup
 - Builder Pattern - Flexible configuration API
 - Secure - Handles authentication with Langfuse credentials
-- Dual Configuration - Supports both Langfuse-specific and standard OTEL environment variables
 - Flexible Runtime Configuration - Does not force specific Tokio runtime features
 
 ## Installation
