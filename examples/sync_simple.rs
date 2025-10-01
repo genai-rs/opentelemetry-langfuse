@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use opentelemetry::global;
     use opentelemetry::trace::{Span, SpanKind, Tracer};
     use opentelemetry::KeyValue;
-    use opentelemetry_langfuse::exporter_from_env;
+    use opentelemetry_langfuse::ExporterBuilder;
     use opentelemetry_sdk::trace::{SdkTracerProvider, SimpleSpanProcessor};
     use opentelemetry_sdk::Resource;
     use std::time::Duration;
@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("This exports spans immediately when they end (blocking).\n");
 
     // Create the Langfuse exporter from environment variables
-    let exporter = exporter_from_env()?;
+    let exporter = ExporterBuilder::from_env()?.build()?;
 
     // Build a tracer provider with SimpleSpanProcessor
     // Note: HTTP export requires async runtime even with SimpleSpanProcessor

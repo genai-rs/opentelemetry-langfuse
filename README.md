@@ -38,7 +38,7 @@ For production applications, use `BatchSpanProcessor` with the async runtime for
 
 ```rust
 use opentelemetry::global;
-use opentelemetry_langfuse::exporter_from_env;
+use opentelemetry_langfuse::ExporterBuilder;
 use opentelemetry_sdk::trace::{
     span_processor_with_async_runtime::BatchSpanProcessor,
     SdkTracerProvider,
@@ -49,7 +49,7 @@ use opentelemetry::KeyValue;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create the Langfuse exporter
-    let exporter = exporter_from_env()?;
+    let exporter = ExporterBuilder::from_env()?.build()?;
 
     // Build tracer provider with BatchSpanProcessor (async runtime version)
     let provider = SdkTracerProvider::builder()
@@ -101,12 +101,12 @@ LANGFUSE_SECRET_KEY=sk-lf-...              # Your secret key (required)
 LANGFUSE_HOST=https://cloud.langfuse.com   # Optional: Defaults to cloud instance
 ```
 
-Use `exporter_from_env()` to load these variables:
+Use `ExporterBuilder::from_env()` to load these variables:
 
 ```rust
-use opentelemetry_langfuse::exporter_from_env;
+use opentelemetry_langfuse::ExporterBuilder;
 
-let exporter = exporter_from_env()?;
+let exporter = ExporterBuilder::from_env()?.build()?;
 ```
 
 ## Manual Configuration

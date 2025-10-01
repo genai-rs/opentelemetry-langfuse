@@ -124,22 +124,41 @@ impl ExporterBuilder {
         self
     }
 
-    /// Loads configuration from environment variables.
+    /// Creates an ExporterBuilder from environment variables.
     ///
     /// This method reads Langfuse-specific variables:
     /// - `LANGFUSE_HOST`: The base URL of your Langfuse instance (defaults to <https://cloud.langfuse.com>)
     /// - `LANGFUSE_PUBLIC_KEY`: Your Langfuse public key (required)
     /// - `LANGFUSE_SECRET_KEY`: Your Langfuse secret key (required)
-    pub fn from_env(mut self) -> Result<Self> {
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use opentelemetry_langfuse::ExporterBuilder;
+    /// use std::time::Duration;
+    ///
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Load from environment, then customize
+    /// let exporter = ExporterBuilder::from_env()?
+    ///     .with_timeout(Duration::from_secs(30))
+    ///     .build()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn from_env() -> Result<Self> {
         // Get Langfuse endpoint (defaults to cloud if not set)
         let langfuse_endpoint = endpoint::build_otlp_endpoint_from_env()?;
-        self.endpoint = Some(langfuse_endpoint);
 
         // Get Langfuse credentials
         let auth = auth::build_auth_header_from_env()?;
-        self.auth_header = Some(auth);
 
-        Ok(self)
+        Ok(Self {
+            endpoint: Some(langfuse_endpoint),
+            auth_header: Some(auth),
+            timeout: None,
+            additional_headers: HashMap::new(),
+            http_client: None,
+        })
     }
 
     /// Builds the Langfuse OTLP exporter.
@@ -233,33 +252,6 @@ impl Default for ExporterBuilder {
     }
 }
 
-/// Creates a Langfuse OTLP exporter using Langfuse environment variables.
-///
-/// This function reads Langfuse-specific environment variables:
-/// - `LANGFUSE_HOST`: The base URL of your Langfuse instance (defaults to <https://cloud.langfuse.com>)
-/// - `LANGFUSE_PUBLIC_KEY`: Your Langfuse public key (required)
-/// - `LANGFUSE_SECRET_KEY`: Your Langfuse secret key (required)
-///
-/// The OTLP endpoint will be constructed as `{LANGFUSE_HOST}/api/public/otel/v1/traces`.
-///
-/// # Returns
-///
-/// Returns a Result containing the configured SpanExporter if successful.
-///
-/// # Example
-///
-/// ```no_run
-/// use opentelemetry_langfuse::exporter_from_env;
-///
-/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let exporter = exporter_from_env()?;
-/// // Use the exporter with your TracerProvider setup
-/// # Ok(())
-/// # }
-/// ```
-pub fn exporter_from_env() -> Result<SpanExporter> {
-    ExporterBuilder::new().from_env()?.build()
-}
 
 /// Creates a Langfuse OTLP exporter using explicit configuration.
 ///
@@ -308,7 +300,7 @@ mod tests {
         env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
         env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
 
-        let result = exporter_from_env();
+        let result = ExporterBuilder::from_env().and_then(|b| b.build());
         assert!(result.is_ok());
 
         env::remove_var("LANGFUSE_HOST");
@@ -321,7 +313,7 @@ mod tests {
     fn test_exporter_from_env_missing_credentials() {
         env::set_var("LANGFUSE_HOST", "https://test.langfuse.com");
 
-        let result = exporter_from_env();
+        let result = ExporterBuilder::from_env();
         assert!(matches!(result, Err(Error::MissingEnvironmentVariable(_))));
 
         env::remove_var("LANGFUSE_HOST");
