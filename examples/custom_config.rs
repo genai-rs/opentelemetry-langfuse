@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use opentelemetry::global;
     use opentelemetry::trace::{Span, SpanKind, Tracer};
     use opentelemetry::KeyValue;
-    use opentelemetry_langfuse::{exporter_from_env, ExporterBuilder};
+    use opentelemetry_langfuse::ExporterBuilder;
     use opentelemetry_sdk::trace::{SdkTracerProvider, SimpleSpanProcessor};
     use opentelemetry_sdk::Resource;
     use std::time::Duration;
@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 1: Using environment variables with default settings
     println!("1. Default configuration from environment:");
-    let default_exporter = exporter_from_env()?;
+    let default_exporter = ExporterBuilder::from_env()?.build()?;
     println!("   ✓ Created exporter with default settings\n");
 
     // Example 2: Manual configuration without environment variables
@@ -62,8 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 4: Custom headers for additional metadata
     println!("4. Custom headers configuration:");
-    let _headers_exporter = ExporterBuilder::new()
-        .from_env()? // Load from env first
+    let _headers_exporter = ExporterBuilder::from_env()? // Load from env first
         .with_header("X-Service-Version", "1.2.3")
         .with_header("X-Environment", "staging")
         .with_headers(vec![
@@ -83,8 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .use_native_tls()
         .build()?;
 
-    let native_tls_exporter = ExporterBuilder::new()
-        .from_env()?
+    let native_tls_exporter = ExporterBuilder::from_env()?
         .with_http_client(native_tls_client)
         .build()?;
     */
@@ -122,8 +120,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .tcp_keepalive(Duration::from_secs(60))
         .build()?;
 
-    let _production_exporter = ExporterBuilder::new()
-        .from_env()?  // Start with env vars
+    let _production_exporter = ExporterBuilder::from_env()?  // Start with env vars
         .with_timeout(Duration::from_secs(45))  // Override timeout
         .with_header("X-Service-Name", "production-api")
         .with_http_client(production_client)

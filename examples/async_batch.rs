@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use opentelemetry::global;
     use opentelemetry::trace::{Span, SpanKind, Tracer};
     use opentelemetry::KeyValue;
-    use opentelemetry_langfuse::exporter_from_env;
+    use opentelemetry_langfuse::ExporterBuilder;
     use opentelemetry_sdk::trace::SdkTracerProvider;
     use opentelemetry_sdk::Resource;
     use std::time::Duration;
@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create the Langfuse exporter from environment variables
     // This is just a standard OTLP exporter with Langfuse auth configured
-    let exporter = exporter_from_env()?;
+    let exporter = ExporterBuilder::from_env()?.build()?;
 
     // Build a tracer provider with BatchSpanProcessor
     // The batch processor uses the Tokio runtime from #[tokio::main]

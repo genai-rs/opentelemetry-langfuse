@@ -9,20 +9,23 @@
 //! # Quick Start
 //!
 //! ```no_run
-//! use opentelemetry_langfuse::exporter_from_env;
-//! use opentelemetry_sdk::trace::SdkTracerProvider;
-//! use opentelemetry_sdk::Resource;
+//! use opentelemetry_langfuse::ExporterBuilder;
+//! use opentelemetry_sdk::trace::{
+//!     span_processor_with_async_runtime::BatchSpanProcessor,
+//!     SdkTracerProvider,
+//! };
+//! use opentelemetry_sdk::{runtime::Tokio, Resource};
 //! use opentelemetry::KeyValue;
 //! use opentelemetry::global;
 //!
 //! # fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // Create the Langfuse exporter from environment variables
 //! // Requires: LANGFUSE_HOST, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY
-//! let exporter = exporter_from_env()?;
+//! let exporter = ExporterBuilder::from_env()?.build()?;
 //!
 //! // Create your tracer provider with the Langfuse exporter
 //! let provider = SdkTracerProvider::builder()
-//!     .with_batch_exporter(exporter)
+//!     .with_span_processor(BatchSpanProcessor::builder(exporter, Tokio).build())
 //!     .with_resource(Resource::builder().with_attributes(vec![
 //!         KeyValue::new("service.name", "my-service"),
 //!     ]).build())
@@ -63,7 +66,7 @@
 //! export LANGFUSE_SECRET_KEY="sk-lf-..."
 //! ```
 //!
-//! Use `exporter_from_env()` to create an exporter using these variables.
+//! Use `ExporterBuilder::from_env()` to create an exporter using these variables.
 
 pub mod auth;
 pub mod constants;
@@ -75,4 +78,4 @@ pub mod exporter;
 pub use auth::{build_auth_header, build_auth_header_from_env};
 pub use endpoint::{build_otlp_endpoint, build_otlp_endpoint_from_env};
 pub use error::{Error, Result};
-pub use exporter::{exporter, exporter_from_env, ExporterBuilder};
+pub use exporter::{exporter, ExporterBuilder};
