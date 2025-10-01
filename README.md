@@ -50,15 +50,6 @@ The [`examples/`](examples) directory contains ready-to-run scenarios that map t
 - [`async_batch`](examples/async_batch.rs) – fully async application using Tokio; recommended for production loads
 - [`custom_config`](examples/custom_config.rs) – advanced exporter configuration (custom HTTP clients, TLS, proxy, headers)
 
-Run any example with:
-```bash
-export LANGFUSE_PUBLIC_KEY="pk-lf-..."
-export LANGFUSE_SECRET_KEY="sk-lf-..."
-export LANGFUSE_HOST="https://cloud.langfuse.com"
-
-cargo run --example <example_name>
-```
-
 ## Configuration
 
 The exporter can be configured using Langfuse-specific environment variables:
