@@ -41,7 +41,6 @@ reqwest = { version = "0.12", default-features = false }
 tokio = { version = "1.41", features = ["rt-multi-thread", "macros", "time"] }
 dotenvy = "0.15"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = "0.4"
 serial_test = "3.0"
 langfuse-ergonomic = "0.2"
