@@ -233,40 +233,6 @@ impl Default for ExporterBuilder {
     }
 }
 
-/// Creates a Langfuse OTLP exporter using Langfuse-specific environment variables.
-///
-/// This function reads Langfuse-specific environment variables:
-/// - `LANGFUSE_HOST`: The base URL of your Langfuse instance (defaults to <https://cloud.langfuse.com>)
-/// - `LANGFUSE_PUBLIC_KEY`: Your Langfuse public key (required)
-/// - `LANGFUSE_SECRET_KEY`: Your Langfuse secret key (required)
-///
-/// The OTLP endpoint will be constructed as `{LANGFUSE_HOST}/api/public/otel/v1/traces`.
-///
-/// # Returns
-///
-/// Returns a Result containing the configured SpanExporter if successful.
-///
-/// # Example
-///
-/// ```no_run
-/// use opentelemetry_langfuse::exporter_from_langfuse_env;
-///
-/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let exporter = exporter_from_langfuse_env()?;
-/// // Use the exporter with your TracerProvider setup
-/// # Ok(())
-/// # }
-/// ```
-pub fn exporter_from_langfuse_env() -> Result<SpanExporter> {
-    let endpoint = endpoint::build_otlp_endpoint_from_env()?;
-    let auth = auth::build_auth_header_from_env()?;
-
-    ExporterBuilder::new()
-        .with_endpoint(endpoint)
-        .with_auth_header(auth)
-        .build()
-}
-
 /// Creates a Langfuse OTLP exporter using Langfuse environment variables.
 ///
 /// This function reads Langfuse-specific environment variables:
@@ -337,17 +303,14 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_exporter_from_langfuse_env() {
-        // Set up Langfuse environment variables
+    fn test_exporter_from_env_uses_langfuse_variables() {
         env::set_var("LANGFUSE_HOST", "https://test.langfuse.com");
         env::set_var("LANGFUSE_PUBLIC_KEY", "pk-test");
         env::set_var("LANGFUSE_SECRET_KEY", "sk-test");
 
-        // The function should successfully create an exporter
-        let result = exporter_from_langfuse_env();
+        let result = exporter_from_env();
         assert!(result.is_ok());
 
-        // Clean up
         env::remove_var("LANGFUSE_HOST");
         env::remove_var("LANGFUSE_PUBLIC_KEY");
         env::remove_var("LANGFUSE_SECRET_KEY");
@@ -355,15 +318,12 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_exporter_from_langfuse_env_missing_credentials() {
-        // Set only host, no credentials
+    fn test_exporter_from_env_missing_credentials() {
         env::set_var("LANGFUSE_HOST", "https://test.langfuse.com");
 
-        // Should fail with MissingEnvironmentVariable error
-        let result = exporter_from_langfuse_env();
+        let result = exporter_from_env();
         assert!(matches!(result, Err(Error::MissingEnvironmentVariable(_))));
 
-        // Clean up
         env::remove_var("LANGFUSE_HOST");
     }
 
