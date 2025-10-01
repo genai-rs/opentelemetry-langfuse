@@ -44,6 +44,7 @@ tracing = "0.1"
 chrono = "0.4"
 serial_test = "3.0"
 langfuse-ergonomic = "0.2"
+serde_json = "1.0"
 
 [features]
 default = []
