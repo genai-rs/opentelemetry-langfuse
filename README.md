@@ -43,17 +43,12 @@ global::set_tracer_provider(provider);
 
 ## Examples
 
-We provide comprehensive examples for different use cases:
+The [`examples/`](examples) directory contains ready-to-run scenarios that map to common deployment patterns:
 
-### Synchronous Applications
-- [`sync_simple`](examples/sync_simple.rs) - Simple synchronous tracing with immediate export (good for development/testing)
-- [`sync_batch`](examples/sync_batch.rs) - Batch processing in mostly synchronous applications (requires minimal async runtime)
-
-### Asynchronous Applications
-- [`async_batch`](examples/async_batch.rs) - Full async with Tokio and batch processing (recommended for production)
-
-### Configuration
-- [`custom_config`](examples/custom_config.rs) - Advanced configuration including custom HTTP client, proxy, TLS, and headers
+- [`sync_simple`](examples/sync_simple.rs) – minimal setup for development and quick demos
+- [`sync_batch`](examples/sync_batch.rs) – synchronous app that spins up a lightweight async runtime for batching
+- [`async_batch`](examples/async_batch.rs) – fully async application using Tokio; recommended for production loads
+- [`custom_config`](examples/custom_config.rs) – advanced exporter configuration (custom HTTP clients, TLS, proxy, headers)
 
 Run any example with:
 ```bash
@@ -74,7 +69,7 @@ LANGFUSE_SECRET_KEY=sk-lf-...              # Your secret key (required)
 LANGFUSE_HOST=https://cloud.langfuse.com   # Optional: Defaults to cloud instance
 ```
 
-Use `exporter_from_env()` or `exporter_from_langfuse_env()` to load these variables
+Use `exporter_from_env()` to load these variables
 
 ## Manual Configuration
 
@@ -118,10 +113,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-See our examples for different scenarios:
-- [`async_batch`](examples/async_batch.rs) - Full async application with Tokio
-- [`sync_batch`](examples/sync_batch.rs) - Mostly synchronous app with batch processing
-- [`sync_simple`](examples/sync_simple.rs) - Simple immediate export (still needs async runtime for HTTP)
+For end-to-end samples, see the `async_batch`, `sync_batch`, and `sync_simple` examples described above.
 
 ### Custom HTTP Client
 
