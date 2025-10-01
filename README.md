@@ -12,8 +12,6 @@ This crate provides OpenTelemetry components and utilities for integrating with 
 
 ## Installation
 
-For production use with `BatchSpanProcessor` (recommended), enable the experimental async runtime feature:
-
 ```toml
 [dependencies]
 opentelemetry-langfuse = "*"
@@ -25,16 +23,7 @@ opentelemetry_sdk = { version = "0.30", features = [
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ```
 
-For development/testing with `SimpleSpanProcessor`:
-
-```toml
-[dependencies]
-opentelemetry-langfuse = "*"
-```
-
-## Quick Start (Production - Recommended)
-
-For production applications, use `BatchSpanProcessor` with the async runtime for optimal performance:
+## Quick Start
 
 ```rust
 use opentelemetry::global;
@@ -51,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create the Langfuse exporter
     let exporter = ExporterBuilder::from_env()?.build()?;
 
-    // Build tracer provider with BatchSpanProcessor (async runtime version)
+    // Build tracer provider with BatchSpanProcessor
     let provider = SdkTracerProvider::builder()
         .with_span_processor(BatchSpanProcessor::builder(exporter, Tokio).build())
         .with_resource(Resource::builder().with_attributes(vec![
@@ -68,19 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-**Why the async runtime version?** The `span_processor_with_async_runtime::BatchSpanProcessor` properly integrates with Tokio's async runtime, enabling efficient batched exports without blocking your application. This is validated in our [integration tests](tests/integration_test.rs).
-
-### Quick Start (Development)
-
-For development and testing, you can use `SimpleSpanProcessor` for immediate exports:
-
-```rust
-use opentelemetry_sdk::trace::{SdkTracerProvider, SimpleSpanProcessor};
-
-let provider = SdkTracerProvider::builder()
-    .with_span_processor(SimpleSpanProcessor::new(exporter))
-    .build();
-```
+This uses `BatchSpanProcessor` with the async runtime for efficient batched exports. This is validated in our [integration tests](tests/integration_test.rs).
 
 ## Examples
 
@@ -105,8 +82,15 @@ Use `ExporterBuilder::from_env()` to load these variables:
 
 ```rust
 use opentelemetry_langfuse::ExporterBuilder;
+use std::time::Duration;
 
+// Load from environment
 let exporter = ExporterBuilder::from_env()?.build()?;
+
+// Or load from environment and customize
+let exporter = ExporterBuilder::from_env()?
+    .with_timeout(Duration::from_secs(30))
+    .build()?;
 ```
 
 ## Manual Configuration
@@ -124,58 +108,7 @@ let exporter = ExporterBuilder::new()
     .build()?;
 ```
 
-## Batch Processing: Async Runtime vs Standard
-
-OpenTelemetry SDK provides two implementations of `BatchSpanProcessor`:
-
-### 1. Async Runtime Version (Recommended)
-
-**Location:** `opentelemetry_sdk::trace::span_processor_with_async_runtime::BatchSpanProcessor`
-
-**Features Required:**
-```toml
-opentelemetry_sdk = { version = "0.30", features = [
-    "rt-tokio",
-    "experimental_trace_batch_span_processor_with_async_runtime"
-]}
-```
-
-**Usage:**
-```rust
-use opentelemetry_sdk::trace::span_processor_with_async_runtime::BatchSpanProcessor;
-use opentelemetry_sdk::runtime::Tokio;
-
-let provider = SdkTracerProvider::builder()
-    .with_span_processor(BatchSpanProcessor::builder(exporter, Tokio).build())
-    .build();
-```
-
-**Benefits:**
-- Properly integrates with Tokio's async runtime
-- Works in all contexts (production apps, tests, examples)
-- Supports concurrent exports with `with_max_concurrent_exports()`
-- Validated in [integration tests](tests/integration_test.rs)
-
-### 2. Standard Version (Limited Use)
-
-**Location:** `opentelemetry_sdk::trace::BatchSpanProcessor`
-
-**Usage:**
-```rust
-let provider = SdkTracerProvider::builder()
-    .with_batch_exporter(exporter)  // Convenience method
-    .build();
-```
-
-**Limitations:**
-- Uses `std::thread` with `futures_executor::block_on`
-- Cannot access Tokio reactor in test context
-- Works in standalone applications but fails in `cargo test`
-- See [examples/sync_batch.rs](examples/sync_batch.rs) for working usage
-
-**Recommendation:** Use the async runtime version for production and testing.
-
-### Custom HTTP Client
+## Custom HTTP Client
 
 By default, the OTLP exporter will use its own HTTP client with TLS support. You can provide a custom client for advanced configurations:
 - Proxy settings
@@ -219,7 +152,7 @@ export LANGFUSE_HOST="https://cloud.langfuse.com"
 cargo test --test integration_test
 ```
 
-The tests use unique timestamp-based IDs to track traces and verify they land in Langfuse by querying the API with `langfuse-ergonomic` client.
+The tests use unique timestamp-based IDs to track traces and verify they land in Langfuse by querying the API with the [`langfuse-ergonomic`](https://github.com/cstrnt/langfuse-ergonomic) client.
 
 ## License
 
