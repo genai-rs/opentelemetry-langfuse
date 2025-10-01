@@ -75,6 +75,7 @@ jobs:
       - name: Run tests
         run: cargo test --verbose --all-features
         env:
+          LANGFUSE_HOST: https://cloud.langfuse.com
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
         
