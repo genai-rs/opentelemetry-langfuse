@@ -252,7 +252,6 @@ impl Default for ExporterBuilder {
     }
 }
 
-
 /// Creates a Langfuse OTLP exporter using explicit configuration.
 ///
 /// # Arguments
