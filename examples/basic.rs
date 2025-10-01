@@ -4,7 +4,7 @@ use langfuse_ergonomic::client::LangfuseClient;
 use opentelemetry::global;
 use opentelemetry::trace::{Span, TraceContextExt, Tracer};
 use opentelemetry::KeyValue;
-use opentelemetry_langfuse::exporter_from_env;
+use opentelemetry_langfuse::ExporterBuilder;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use opentelemetry_sdk::Resource;
 use std::error::Error;
@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // - LANGFUSE_HOST: The base URL of your Langfuse instance
     // - LANGFUSE_PUBLIC_KEY: Your Langfuse public key
     // - LANGFUSE_SECRET_KEY: Your Langfuse secret key
-    let exporter = exporter_from_env()?;
+    let exporter = ExporterBuilder::from_env()?.build()?;
 
     // Create tracer provider with the Langfuse exporter
     let provider = SdkTracerProvider::builder()
