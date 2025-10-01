@@ -78,68 +78,55 @@ async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::er
     Ok(false)
 }
 
-#[test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[serial]
-fn test_simple_sync_export() -> Result<(), Box<dyn std::error::Error>> {
-    // Create runtime like sync_batch example
-    let runtime = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .worker_threads(2)
-        .build()?;
+async fn test_simple_sync_export() -> Result<(), Box<dyn std::error::Error>> {
+    let test_id = generate_test_id("simple-sync");
 
-    runtime.block_on(async {
-        let test_id = generate_test_id("simple-sync");
-
-        // Create exporter and batch processor (uses Tokio runtime with rt-tokio feature)
-        let exporter = exporter_from_env()?;
-        let provider = SdkTracerProvider::builder()
-            .with_resource(
-                Resource::builder()
-                    .with_attributes([
-                        KeyValue::new("service.name", "integration-test-simple-sync"),
-                        KeyValue::new("test.id", test_id.clone()),
-                    ])
-                    .build(),
-            )
-            .with_batch_exporter(exporter)
-            .build();
-
-        // Use provider directly instead of global (to avoid conflicts between tests)
-        let tracer = provider.tracer("integration-test");
-        {
-            let mut span = tracer
-                .span_builder(test_id.clone())
-                .with_kind(SpanKind::Server)
+    // Create exporter and batch processor (requires experimental_trace_batch_span_processor_with_async_runtime feature)
+    let exporter = exporter_from_env()?;
+    let provider = SdkTracerProvider::builder()
+        .with_resource(
+            Resource::builder()
                 .with_attributes([
-                    KeyValue::new("test.type", "simple_sync"),
-                    KeyValue::new("test.timestamp", Utc::now().to_rfc3339()),
+                    KeyValue::new("service.name", "integration-test-simple-sync"),
+                    KeyValue::new("test.id", test_id.clone()),
                 ])
-                .start(&tracer);
+                .build(),
+        )
+        .with_batch_exporter(exporter)
+        .build();
 
-            sleep(Duration::from_millis(50)).await;
-            span.set_attribute(KeyValue::new("test.status", "completed"));
-            span.end();
-        }
+    // Use provider directly instead of global (to avoid conflicts between tests)
+    let tracer = provider.tracer("integration-test");
+    {
+        let mut span = tracer
+            .span_builder(test_id.clone())
+            .with_kind(SpanKind::Server)
+            .with_attributes([
+                KeyValue::new("test.type", "simple_sync"),
+                KeyValue::new("test.timestamp", Utc::now().to_rfc3339()),
+            ])
+            .start(&tracer);
 
-        // Wait for batch export
-        sleep(Duration::from_secs(2)).await;
+        sleep(Duration::from_millis(50)).await;
+        span.set_attribute(KeyValue::new("test.status", "completed"));
+        span.end();
+    }
 
-        // Shutdown provider to flush spans
-        drop(provider);
+    // Wait for batch export
+    sleep(Duration::from_secs(2)).await;
 
-        // Verify trace in Langfuse
-        let found = verify_trace_in_langfuse(&test_id).await?;
-        assert!(
-            found,
-            "Trace with test_id '{}' not found in Langfuse",
-            test_id
-        );
+    // Shutdown provider to flush spans
+    drop(provider);
 
-        Ok::<(), Box<dyn std::error::Error>>(())
-    })?;
-
-    // Shutdown runtime
-    runtime.shutdown_timeout(Duration::from_secs(5));
+    // Verify trace in Langfuse
+    let found = verify_trace_in_langfuse(&test_id).await?;
+    assert!(
+        found,
+        "Trace with test_id '{}' not found in Langfuse",
+        test_id
+    );
 
     Ok(())
 }
@@ -149,7 +136,7 @@ fn test_simple_sync_export() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_simple_async_export() -> Result<(), Box<dyn std::error::Error>> {
     let test_id = generate_test_id("simple-async");
 
-    // Create exporter with BatchSpanProcessor (requires rt-tokio feature and multi_thread runtime)
+    // Create exporter with BatchSpanProcessor (requires experimental_trace_batch_span_processor_with_async_runtime feature)
     let exporter = exporter_from_env()?;
     let provider = SdkTracerProvider::builder()
         .with_resource(
@@ -214,7 +201,7 @@ async fn test_simple_async_export() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_batch_sync_export() -> Result<(), Box<dyn std::error::Error>> {
     let test_id = generate_test_id("batch-sync");
 
-    // Create exporter with BatchSpanProcessor (requires rt-tokio feature and multi_thread runtime)
+    // Create exporter with BatchSpanProcessor (requires experimental_trace_batch_span_processor_with_async_runtime feature)
     let exporter = exporter_from_env()?;
     let provider = SdkTracerProvider::builder()
         .with_resource(
@@ -268,7 +255,7 @@ async fn test_batch_sync_export() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_batch_async_export() -> Result<(), Box<dyn std::error::Error>> {
     let test_id = generate_test_id("batch-async");
 
-    // Create exporter with BatchSpanProcessor (requires rt-tokio feature and multi_thread runtime)
+    // Create exporter with BatchSpanProcessor (requires experimental_trace_batch_span_processor_with_async_runtime feature)
     let exporter = exporter_from_env()?;
     let provider = SdkTracerProvider::builder()
         .with_resource(
