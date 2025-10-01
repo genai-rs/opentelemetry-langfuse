@@ -19,8 +19,10 @@ use langfuse_ergonomic::client::LangfuseClient;
 use opentelemetry::trace::{Span, SpanKind, Tracer, TracerProvider};
 use opentelemetry::KeyValue;
 use opentelemetry_langfuse::exporter_from_env;
-use opentelemetry_sdk::trace::{SdkTracerProvider, SimpleSpanProcessor};
-use opentelemetry_sdk::Resource;
+use opentelemetry_sdk::trace::{
+    span_processor_with_async_runtime::BatchSpanProcessor, SdkTracerProvider, SimpleSpanProcessor,
+};
+use opentelemetry_sdk::{runtime::Tokio, Resource};
 use serial_test::serial;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -128,19 +130,54 @@ async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-// NOTE: BatchSpanProcessor tests fail in cargo test context
-//
-// The BatchSpanProcessor spawns a std::thread that uses futures_executor::block_on,
-// which cannot access the Tokio reactor needed by the HTTP client (reqwest).
-// This affects both async and sync test patterns.
-//
-// BatchSpanProcessor works perfectly in production/standalone examples:
-// - cargo run --example async_batch  ✅
-// - cargo run --example sync_batch   ✅
-//
-// But fails in test context:
-// - cargo test with tokio::test      ❌
-// - cargo test with manual runtime   ❌
-//
-// Root cause: opentelemetry-sdk v0.30.0 uses futures_executor instead of
-// the configured runtime (Tokio) for BatchSpanProcessor background exports.
+#[tokio::test(flavor = "multi_thread")]
+#[serial]
+async fn test_batch_span_processor() -> Result<(), Box<dyn std::error::Error>> {
+    let test_id = generate_test_id("batch");
+
+    // Create exporter with BatchSpanProcessor (async runtime version)
+    // This uses the experimental span_processor_with_async_runtime module
+    // which properly integrates with Tokio runtime
+    let exporter = exporter_from_env()?;
+    let provider = SdkTracerProvider::builder()
+        .with_resource(
+            Resource::builder()
+                .with_attributes([
+                    KeyValue::new("service.name", "integration-test-batch"),
+                    KeyValue::new("test.id", test_id.clone()),
+                ])
+                .build(),
+        )
+        .with_span_processor(BatchSpanProcessor::builder(exporter, Tokio).build())
+        .build();
+
+    // Use provider directly instead of global (to avoid conflicts between tests)
+    let tracer = provider.tracer("integration-test");
+    {
+        let mut span = tracer
+            .span_builder(test_id.clone())
+            .with_kind(SpanKind::Server)
+            .with_attributes([
+                KeyValue::new("test.type", "batch_processor"),
+                KeyValue::new("test.timestamp", Utc::now().to_rfc3339()),
+            ])
+            .start(&tracer);
+
+        sleep(Duration::from_millis(50)).await;
+        span.set_attribute(KeyValue::new("test.status", "completed"));
+        span.end();
+    }
+
+    // Shutdown provider to flush spans
+    let _ = provider.shutdown();
+
+    // Verify trace in Langfuse
+    let found = verify_trace_in_langfuse(&test_id).await?;
+    assert!(
+        found,
+        "Trace with test_id '{}' not found in Langfuse",
+        test_id
+    );
+
+    Ok(())
+}
