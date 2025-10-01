@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.3.1...v0.4.0) - 2025-10-01
+
+### Added
+
+- working integration test with SimpleSpanProcessor
+- add working integration test with SimpleSpanProcessor
+- add experimental_trace_batch_span_processor_with_async_runtime feature
+- add integration tests for Langfuse exporter
+- add default HTTP client and comprehensive examples
+
+### Fixed
+
+- use real Langfuse secrets in coverage workflow
+- add Langfuse env vars to no-default-features test step
+- use LANGFUSE_HOST from secrets instead of hardcoding
+- use async runtime BatchSpanProcessor in tests
+- avoid global tracer provider in tests to prevent hanging
+
+### Other
+
+- ensure coverage never blocks pipeline
+- consolidate coverage into main CI workflow
+- apply cargo fmt formatting
+- simplify README to focus on recommended production approach
+- [**breaking**] make ExporterBuilder::from_env() a static constructor
+- prominently feature async runtime BatchSpanProcessor
+- document that BatchSpanProcessor fails in both sync and async test contexts
+- fmt
+- document BatchSpanProcessor runtime limitation in tests
+- add rt-tokio feature to enable async batch processor
+- explicitly set LANGFUSE_HOST in test environment
+- added rust code sample
+- cleanup unused items
+- remove items from readme
+- remove outdated dual configuration feature from README
+- remove unused tracing-subscriber dev-dependency
+- remove support for standard OpenTelemetry environment variables
+- remove CONTRIBUTING.md and AUTOMATION_GUIDE.md
+- remove unused code and improve documentation accuracy
+- revert CHANGELOG.md changes (managed by release-plz)
+- add E2E verification to async runtime examples
+- convert Claude guide references to automation
+
 ## [0.3.1](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.3.0...v0.3.1) - 2025-08-31
 
 ### Fixed
