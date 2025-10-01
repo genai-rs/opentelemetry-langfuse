@@ -10,26 +10,12 @@ OpenTelemetry integration for [Langfuse](https://langfuse.com), the open-source 
 
 This crate provides OpenTelemetry components and utilities for integrating with Langfuse, enabling comprehensive observability for LLM applications. For more information about OpenTelemetry support in Langfuse, see the [official Langfuse OpenTelemetry documentation](https://langfuse.com/integrations/native/opentelemetry).
 
-## Features
-
-- OTLP Exporter - Configured exporter for sending traces to Langfuse
-- Composable - Integrates with your existing OpenTelemetry setup
-- Builder Pattern - Flexible configuration API
-- Secure - Handles authentication with Langfuse credentials
-- Flexible Runtime Configuration - Does not force specific Tokio runtime features
-
 ## Installation
 
 ```toml
 [dependencies]
 opentelemetry-langfuse = "*"
 ```
-
-### TLS Configuration
-
-TLS support is provided through the `opentelemetry-otlp` crate's `reqwest-client` feature, which includes `rustls` by default. This works out of the box for HTTPS connections to Langfuse.
-
-If you need a different TLS implementation, configure it in your custom `reqwest::Client` when using `with_http_client()`.
 
 ## Quick Start
 
