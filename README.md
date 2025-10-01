@@ -69,7 +69,13 @@ LANGFUSE_SECRET_KEY=sk-lf-...              # Your secret key (required)
 LANGFUSE_HOST=https://cloud.langfuse.com   # Optional: Defaults to cloud instance
 ```
 
-Use `exporter_from_env()` to load these variables
+Use `exporter_from_env()` to load these variables:
+
+```rust
+use opentelemetry_langfuse::exporter_from_env;
+
+let exporter = exporter_from_env()?;
+```
 
 ## Manual Configuration
 
