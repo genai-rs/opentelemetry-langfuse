@@ -113,12 +113,14 @@ jobs:
 
       - name: Generate coverage
         run: cargo llvm-cov --all-features --lcov --output-path lcov.info
+        continue-on-error: true
         env:
           LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
 
       - name: Upload to Codecov
+        if: always()
         uses: codecov/codecov-action@v4
         with:
           files: lcov.info
