@@ -65,10 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _headers_exporter = ExporterBuilder::from_env()? // Load from env first
         .with_header("X-Service-Version", "1.2.3")
         .with_header("X-Environment", "staging")
-        .with_headers(vec![
-            ("X-Team", "backend"),
-            ("X-Region", "us-west-2"),
-        ])
+        .with_headers(vec![("X-Team", "backend"), ("X-Region", "us-west-2")])
         .build()?;
     println!("   ✓ Added custom headers for metadata\n");
 
