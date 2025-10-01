@@ -63,7 +63,7 @@
 //! export LANGFUSE_SECRET_KEY="sk-lf-..."
 //! ```
 //!
-//! Use `exporter_from_env()` or `exporter_from_langfuse_env()` to create an exporter using these variables.
+//! Use `exporter_from_env()` to create an exporter using these variables.
 
 pub mod auth;
 pub mod constants;
@@ -75,4 +75,4 @@ pub mod exporter;
 pub use auth::{build_auth_header, build_auth_header_from_env};
 pub use endpoint::{build_otlp_endpoint, build_otlp_endpoint_from_env};
 pub use error::{Error, Result};
-pub use exporter::{exporter, exporter_from_env, exporter_from_langfuse_env, ExporterBuilder};
+pub use exporter::{exporter, exporter_from_env, ExporterBuilder};
