@@ -16,7 +16,6 @@
 
 use chrono::Utc;
 use langfuse_ergonomic::client::LangfuseClient;
-use opentelemetry::global;
 use opentelemetry::trace::{Span, SpanKind, Tracer};
 use opentelemetry::KeyValue;
 use opentelemetry_langfuse::exporter_from_env;
@@ -33,21 +32,33 @@ fn generate_test_id(test_name: &str) -> String {
 
 /// Helper to verify traces in Langfuse by searching for a specific test ID
 async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::error::Error>> {
-    let client = LangfuseClient::from_env()?;
+    println!("  Waiting for Langfuse to process traces...");
 
     // Wait a bit for Langfuse to process the traces
-    sleep(Duration::from_secs(3)).await;
+    sleep(Duration::from_secs(5)).await;
 
-    // Query for recent traces
-    let traces = client.list_traces().limit(50).call().await?;
+    println!("  Querying Langfuse API for test_id: {}", test_id);
+    let client = LangfuseClient::from_env()?;
+
+    // Query for recent traces with timeout
+    let traces = tokio::time::timeout(
+        Duration::from_secs(10),
+        client.list_traces().limit(50).call()
+    )
+    .await
+    .map_err(|_| "Timeout querying Langfuse API")??;
+
+    println!("  Received response from Langfuse");
 
     // Check if we can find our trace by the test_id attribute
     if let Some(data) = traces.get("data") {
         if let Some(array) = data.as_array() {
+            println!("  Found {} total traces", array.len());
             for trace in array {
                 // Check if trace name or metadata contains our test_id
                 if let Some(name) = trace.get("name").and_then(|v| v.as_str()) {
                     if name.contains(test_id) {
+                        println!("  ✓ Found matching trace: {}", name);
                         return Ok(true);
                     }
                 }
@@ -55,10 +66,12 @@ async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::er
                 if let Some(metadata) = trace.get("metadata") {
                     let metadata_str = serde_json::to_string(metadata)?;
                     if metadata_str.contains(test_id) {
+                        println!("  ✓ Found matching trace in metadata");
                         return Ok(true);
                     }
                 }
             }
+            println!("  ✗ No matching trace found for test_id: {}", test_id);
         }
     }
 
@@ -84,10 +97,8 @@ async fn test_simple_sync_export() -> Result<(), Box<dyn std::error::Error>> {
         .with_span_processor(SimpleSpanProcessor::new(exporter))
         .build();
 
-    global::set_tracer_provider(provider.clone());
-
-    // Create a trace
-    let tracer = global::tracer("integration-test");
+    // Use provider directly instead of global (to avoid conflicts between tests)
+    let tracer = provider.tracer("integration-test");
     {
         let mut span = tracer
             .span_builder(test_id.clone())
@@ -136,10 +147,8 @@ async fn test_simple_async_export() -> Result<(), Box<dyn std::error::Error>> {
         .with_span_processor(SimpleSpanProcessor::new(exporter))
         .build();
 
-    global::set_tracer_provider(provider.clone());
-
-    // Create a trace with nested spans
-    let tracer = global::tracer("integration-test");
+    // Use provider directly instead of global (to avoid conflicts between tests)
+    let tracer = provider.tracer("integration-test");
     {
         let mut root_span = tracer
             .span_builder(test_id.clone())
@@ -200,10 +209,8 @@ async fn test_batch_sync_export() -> Result<(), Box<dyn std::error::Error>> {
         .with_batch_exporter(exporter)
         .build();
 
-    global::set_tracer_provider(provider.clone());
-
-    // Create multiple traces
-    let tracer = global::tracer("integration-test");
+    // Use provider directly instead of global (to avoid conflicts between tests)
+    let tracer = provider.tracer("integration-test");
     for i in 0..5 {
         let mut span = tracer
             .span_builder(format!("{}-batch-{}", test_id, i))
@@ -256,13 +263,14 @@ async fn test_batch_async_export() -> Result<(), Box<dyn std::error::Error>> {
         .with_batch_exporter(exporter)
         .build();
 
-    global::set_tracer_provider(provider.clone());
+    // Use provider directly instead of global (to avoid conflicts between tests)
+    let tracer = provider.tracer("integration-test");
 
     // Create concurrent traces
     let mut handles = vec![];
     for i in 0..5 {
         let test_id = test_id.clone();
-        let tracer = global::tracer("integration-test");
+        let tracer = provider.tracer("integration-test");
 
         let handle = tokio::spawn(async move {
             let mut span = tracer
