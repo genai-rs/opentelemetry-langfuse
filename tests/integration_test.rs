@@ -43,7 +43,7 @@ async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::er
     // Query for recent traces with timeout
     let traces = tokio::time::timeout(
         Duration::from_secs(10),
-        client.list_traces().limit(50).call()
+        client.list_traces().limit(50).call(),
     )
     .await
     .map_err(|_| "Timeout querying Langfuse API")??;
