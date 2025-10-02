@@ -30,21 +30,21 @@ unescaped_backticks = "warn"
 opentelemetry = { version = "0.30", features = ["trace"] }
 opentelemetry_sdk = { version = "0.30", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
 opentelemetry-otlp = { version = "0.30", features = ["http-proto", "reqwest-client"] }
-base64 = "0.22"
-thiserror = "1.0"
+base64 = "0.22.1"
+thiserror = "1.0.69"
 # We expose reqwest::Client in our public API (with_http_client method)
 # The actual HTTP/TLS functionality comes from opentelemetry-otlp's reqwest-client feature
-reqwest = { version = "0.12", default-features = false }
+reqwest = { version = "0.12.23", default-features = false }
 
 
 [dev-dependencies]
 tokio = { version = "1.41", features = ["rt-multi-thread", "macros", "time"] }
 opentelemetry_sdk = { version = "0.30", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
-tracing = "0.1"
-chrono = "0.4"
+tracing = "0.1.41"
+chrono = "0.4.42"
 serial_test = "3.0"
 langfuse-ergonomic = "0.2"
-serde_json = "1.0"
+serde_json = "1.0.145"
 
 [features]
 default = []
