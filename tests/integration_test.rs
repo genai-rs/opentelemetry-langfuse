@@ -33,51 +33,78 @@ fn generate_test_id(test_name: &str) -> String {
 }
 
 /// Helper to verify traces in Langfuse by searching for a specific test ID
+/// Polls Langfuse API with retries to handle eventual consistency
 async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::error::Error>> {
-    println!("  Waiting for Langfuse to process traces...");
+    println!("  Polling Langfuse API for trace with test_id: {}", test_id);
 
-    // Wait a bit for Langfuse to process the traces
-    // Increased wait time to handle slower processing on Windows
-    sleep(Duration::from_secs(10)).await;
-
-    println!("  Querying Langfuse API for test_id: {}", test_id);
     let client = LangfuseClient::from_env()?;
 
-    // Query for recent traces with timeout
-    let traces = tokio::time::timeout(
-        Duration::from_secs(10),
-        client.list_traces().limit(50).call(),
-    )
-    .await
-    .map_err(|_| "Timeout querying Langfuse API")??;
+    // Retry configuration: poll up to 15 times with 2 second delays
+    // This gives Langfuse up to 30 seconds to process the trace
+    const MAX_ATTEMPTS: u32 = 15;
+    const RETRY_DELAY_SECS: u64 = 2;
 
-    println!("  Received response from Langfuse");
+    for attempt in 1..=MAX_ATTEMPTS {
+        println!("  Attempt {}/{}: Querying Langfuse API...", attempt, MAX_ATTEMPTS);
 
-    // Check if we can find our trace by the test_id attribute
-    if let Some(data) = traces.get("data") {
-        if let Some(array) = data.as_array() {
-            println!("  Found {} total traces", array.len());
-            for trace in array {
-                // Check if trace name or metadata contains our test_id
-                if let Some(name) = trace.get("name").and_then(|v| v.as_str()) {
-                    if name.contains(test_id) {
-                        println!("  ✓ Found matching trace: {}", name);
-                        return Ok(true);
-                    }
+        // Query for recent traces with timeout
+        let traces = match tokio::time::timeout(
+            Duration::from_secs(10),
+            client.list_traces().limit(50).call(),
+        )
+        .await
+        {
+            Ok(Ok(traces)) => traces,
+            Ok(Err(e)) => {
+                println!("  ⚠ API error on attempt {}: {}", attempt, e);
+                if attempt < MAX_ATTEMPTS {
+                    sleep(Duration::from_secs(RETRY_DELAY_SECS)).await;
+                    continue;
                 }
-                // Also check metadata
-                if let Some(metadata) = trace.get("metadata") {
-                    let metadata_str = serde_json::to_string(metadata)?;
-                    if metadata_str.contains(test_id) {
-                        println!("  ✓ Found matching trace in metadata");
-                        return Ok(true);
+                return Err(e.into());
+            }
+            Err(_) => {
+                println!("  ⚠ Timeout on attempt {}", attempt);
+                if attempt < MAX_ATTEMPTS {
+                    sleep(Duration::from_secs(RETRY_DELAY_SECS)).await;
+                    continue;
+                }
+                return Err("Timeout querying Langfuse API".into());
+            }
+        };
+
+        // Check if we can find our trace by the test_id attribute
+        if let Some(data) = traces.get("data") {
+            if let Some(array) = data.as_array() {
+                println!("  Found {} total traces in response", array.len());
+
+                for trace in array {
+                    // Check if trace name contains our test_id
+                    if let Some(name) = trace.get("name").and_then(|v| v.as_str()) {
+                        if name.contains(test_id) {
+                            println!("  ✓ Found matching trace: {} (attempt {})", name, attempt);
+                            return Ok(true);
+                        }
+                    }
+                    // Also check metadata
+                    if let Some(metadata) = trace.get("metadata") {
+                        let metadata_str = serde_json::to_string(metadata)?;
+                        if metadata_str.contains(test_id) {
+                            println!("  ✓ Found matching trace in metadata (attempt {})", attempt);
+                            return Ok(true);
+                        }
                     }
                 }
             }
-            println!("  ✗ No matching trace found for test_id: {}", test_id);
+        }
+
+        if attempt < MAX_ATTEMPTS {
+            println!("  ✗ Trace not found yet, waiting {} seconds before retry...", RETRY_DELAY_SECS);
+            sleep(Duration::from_secs(RETRY_DELAY_SECS)).await;
         }
     }
 
+    println!("  ✗ Trace not found after {} attempts", MAX_ATTEMPTS);
     Ok(false)
 }
 
