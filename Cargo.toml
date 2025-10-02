@@ -27,9 +27,9 @@ bare_urls = "warn"
 unescaped_backticks = "warn"
 
 [dependencies]
-opentelemetry = { version = "0.30", features = ["trace"] }
-opentelemetry_sdk = { version = "0.30", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
-opentelemetry-otlp = { version = "0.30", features = ["http-proto", "reqwest-client"] }
+opentelemetry = { version = "0.31", features = ["trace"] }
+opentelemetry_sdk = { version = "0.31", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
+opentelemetry-otlp = { version = "0.31", features = ["http-proto", "reqwest-client"] }
 base64 = "0.22"
 thiserror = "1.0"
 # We expose reqwest::Client in our public API (with_http_client method)
@@ -39,11 +39,11 @@ reqwest = { version = "0.12", default-features = false }
 
 [dev-dependencies]
 tokio = { version = "1.41", features = ["rt-multi-thread", "macros", "time"] }
-opentelemetry_sdk = { version = "0.30", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
+opentelemetry_sdk = { version = "0.31", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
 tracing = "0.1"
 chrono = "0.4"
 serial_test = "3.0"
-langfuse-ergonomic = "0.2"
+langfuse-ergonomic = "0.3"
 serde_json = "1.0"
 
 [features]
