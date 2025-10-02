@@ -89,7 +89,7 @@
       "description": "Core dependencies - manual review required",
       "matchPackageNames": [
         "opentelemetry",
-        "opentelemetry-sdk",
+        "opentelemetry_sdk",
         "opentelemetry-otlp"
       ],
       "labels": ["dependencies", "core"],
