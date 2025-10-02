@@ -37,7 +37,8 @@ async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::er
     println!("  Waiting for Langfuse to process traces...");
 
     // Wait a bit for Langfuse to process the traces
-    sleep(Duration::from_secs(5)).await;
+    // Increased wait time to handle slower processing on Windows
+    sleep(Duration::from_secs(10)).await;
 
     println!("  Querying Langfuse API for test_id: {}", test_id);
     let client = LangfuseClient::from_env()?;
