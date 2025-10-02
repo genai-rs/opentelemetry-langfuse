@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.4.0...v0.4.1) - 2025-10-02
+
+### Fixed
+
+- *(deps)* use permissive version ranges for library compatibility
+- *(renovate)* remove prPriority from vulnerabilityAlerts config
+- *(renovate)* remove @ symbol from assignees field
+- increase integration test wait time and remove unused dotenvy dependency
+- *(renovate)* correct package name from opentelemetry-sdk to opentelemetry_sdk
+
+### Other
+
+- *(deps)* Update Rust crate thiserror to v2
+- *(deps)* Update rust minor updates
+- *(deps)* Update rust patch updates
+- *(deps)* Update github-actions to v5
+- apply cargo fmt formatting
+- extend timeout to 2 minutes and add platform isolation
+- implement retry polling for Langfuse trace verification
+- add codecov badge to README
+- updated documentation
+
 ## [0.4.0](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.3.1...v0.4.0) - 2025-10-01
 
 ### Added
