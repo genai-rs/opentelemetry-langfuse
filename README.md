@@ -120,7 +120,6 @@ By default, the OTLP exporter will use its own HTTP client with TLS support. You
 use opentelemetry_langfuse::ExporterBuilder;
 use std::time::Duration;
 
-// Note: reqwest version should match what opentelemetry-otlp uses (0.12)
 let custom_client = reqwest::Client::builder()
     .timeout(Duration::from_secs(30))
     .proxy(reqwest::Proxy::http("http://proxy.example.com:8080")?)

@@ -310,6 +310,9 @@ mod tests {
     #[test]
     #[serial]
     fn test_exporter_from_env_missing_credentials() {
+        // Clean up environment variables first to ensure test isolation
+        env::remove_var("LANGFUSE_PUBLIC_KEY");
+        env::remove_var("LANGFUSE_SECRET_KEY");
         env::set_var("LANGFUSE_HOST", "https://test.langfuse.com");
 
         let result = ExporterBuilder::from_env();
