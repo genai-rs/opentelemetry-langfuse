@@ -54,7 +54,10 @@ async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::er
     const RETRY_DELAY_SECS: u64 = 3;
 
     for attempt in 1..=MAX_ATTEMPTS {
-        println!("  Attempt {}/{}: Querying Langfuse API...", attempt, MAX_ATTEMPTS);
+        println!(
+            "  Attempt {}/{}: Querying Langfuse API...",
+            attempt, MAX_ATTEMPTS
+        );
 
         // Query for recent traces with timeout
         let traces = match tokio::time::timeout(
@@ -108,7 +111,10 @@ async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::er
         }
 
         if attempt < MAX_ATTEMPTS {
-            println!("  ✗ Trace not found yet, waiting {} seconds before retry...", RETRY_DELAY_SECS);
+            println!(
+                "  ✗ Trace not found yet, waiting {} seconds before retry...",
+                RETRY_DELAY_SECS
+            );
             sleep(Duration::from_secs(RETRY_DELAY_SECS)).await;
         }
     }
