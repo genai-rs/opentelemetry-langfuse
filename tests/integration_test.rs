@@ -27,9 +27,17 @@ use serial_test::serial;
 use std::time::Duration;
 use tokio::time::sleep;
 
-/// Helper to generate a unique test ID using timestamp
+/// Helper to generate a unique test ID using timestamp and platform
 fn generate_test_id(test_name: &str) -> String {
-    format!("test-{}-{}", test_name, Utc::now().timestamp_millis())
+    let platform = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+    format!(
+        "test-{}-{}-{}-{}",
+        test_name,
+        platform,
+        arch,
+        Utc::now().timestamp_millis()
+    )
 }
 
 /// Helper to verify traces in Langfuse by searching for a specific test ID
@@ -39,10 +47,11 @@ async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::er
 
     let client = LangfuseClient::from_env()?;
 
-    // Retry configuration: poll up to 15 times with 2 second delays
-    // This gives Langfuse up to 30 seconds to process the trace
-    const MAX_ATTEMPTS: u32 = 15;
-    const RETRY_DELAY_SECS: u64 = 2;
+    // Retry configuration: poll up to 40 times with 3 second delays
+    // This gives Langfuse up to 2 minutes to process the trace
+    // Handles slow processing on different platforms and eventual consistency
+    const MAX_ATTEMPTS: u32 = 40;
+    const RETRY_DELAY_SECS: u64 = 3;
 
     for attempt in 1..=MAX_ATTEMPTS {
         println!("  Attempt {}/{}: Querying Langfuse API...", attempt, MAX_ATTEMPTS);
@@ -121,6 +130,8 @@ async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> 
                 .with_attributes([
                     KeyValue::new("service.name", "integration-test-simple"),
                     KeyValue::new("test.id", test_id.clone()),
+                    KeyValue::new("test.platform", std::env::consts::OS),
+                    KeyValue::new("test.arch", std::env::consts::ARCH),
                 ])
                 .build(),
         )
@@ -173,6 +184,8 @@ async fn test_batch_span_processor() -> Result<(), Box<dyn std::error::Error>> {
                 .with_attributes([
                     KeyValue::new("service.name", "integration-test-batch"),
                     KeyValue::new("test.id", test_id.clone()),
+                    KeyValue::new("test.platform", std::env::consts::OS),
+                    KeyValue::new("test.arch", std::env::consts::ARCH),
                 ])
                 .build(),
         )
