@@ -120,6 +120,6 @@
   // ========================================
   "rust": {
     "enabled": true,
-    "rangeStrategy": "bump"  // Use exact versions in Cargo.toml
+    "rangeStrategy": "update-lockfile"  // Update Cargo.lock, keep permissive ranges in Cargo.toml for library compatibility
   }
 }
