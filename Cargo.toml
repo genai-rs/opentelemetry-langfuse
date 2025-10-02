@@ -31,7 +31,7 @@ opentelemetry = { version = "0.31", features = ["trace"] }
 opentelemetry_sdk = { version = "0.31", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
 opentelemetry-otlp = { version = "0.31", features = ["http-proto", "reqwest-client"] }
 base64 = "0.22"
-thiserror = "1.0"
+thiserror = "2.0"
 # We expose reqwest::Client in our public API (with_http_client method)
 # The actual HTTP/TLS functionality comes from opentelemetry-otlp's reqwest-client feature
 reqwest = { version = "0.12", default-features = false }
