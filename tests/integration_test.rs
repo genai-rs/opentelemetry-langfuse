@@ -15,7 +15,7 @@
 //! ```
 
 use chrono::Utc;
-use langfuse_ergonomic::client::LangfuseClient;
+use langfuse_ergonomic::client::ClientBuilder;
 use opentelemetry::trace::{Span, SpanKind, Tracer, TracerProvider};
 use opentelemetry::KeyValue;
 use opentelemetry_langfuse::ExporterBuilder;
@@ -45,7 +45,7 @@ fn generate_test_id(test_name: &str) -> String {
 async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::error::Error>> {
     println!("  Polling Langfuse API for trace with test_id: {}", test_id);
 
-    let client = LangfuseClient::from_env()?;
+    let client = ClientBuilder::from_env()?.build()?;
 
     // Retry configuration: poll up to 40 times with 3 second delays
     // This gives Langfuse up to 2 minutes to process the trace
