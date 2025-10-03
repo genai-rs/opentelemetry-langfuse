@@ -86,26 +86,23 @@ async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::er
         };
 
         // Check if we can find our trace by the test_id attribute
-        if let Some(data) = traces.get("data") {
-            if let Some(array) = data.as_array() {
-                println!("  Found {} total traces in response", array.len());
+        // The response is now a strongly-typed Traces struct
+        println!("  Found {} total traces in response", traces.data.len());
 
-                for trace in array {
-                    // Check if trace name contains our test_id
-                    if let Some(name) = trace.get("name").and_then(|v| v.as_str()) {
-                        if name.contains(test_id) {
-                            println!("  ✓ Found matching trace: {} (attempt {})", name, attempt);
-                            return Ok(true);
-                        }
-                    }
-                    // Also check metadata
-                    if let Some(metadata) = trace.get("metadata") {
-                        let metadata_str = serde_json::to_string(metadata)?;
-                        if metadata_str.contains(test_id) {
-                            println!("  ✓ Found matching trace in metadata (attempt {})", attempt);
-                            return Ok(true);
-                        }
-                    }
+        for trace in &traces.data {
+            // Check if trace name contains our test_id
+            if let Some(Some(name)) = &trace.name {
+                if name.contains(test_id) {
+                    println!("  ✓ Found matching trace: {} (attempt {})", name, attempt);
+                    return Ok(true);
+                }
+            }
+            // Also check metadata
+            if let Some(Some(metadata)) = &trace.metadata {
+                let metadata_str = serde_json::to_string(metadata)?;
+                if metadata_str.contains(test_id) {
+                    println!("  ✓ Found matching trace in metadata (attempt {})", attempt);
+                    return Ok(true);
                 }
             }
         }
