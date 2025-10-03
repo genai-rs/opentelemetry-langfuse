@@ -173,10 +173,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn verify_traces_in_langfuse() -> Result<(), Box<dyn std::error::Error>> {
-    use langfuse_ergonomic::client::LangfuseClient;
+    use langfuse_ergonomic::client::ClientBuilder;
 
     // Create Langfuse client using the same credentials
-    let client = LangfuseClient::from_env()?;
+    let client = ClientBuilder::from_env()?.build()?;
 
     // Query for recent traces
     let traces = client.list_traces().limit(10).call().await?;
