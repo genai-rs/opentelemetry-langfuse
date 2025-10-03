@@ -141,25 +141,15 @@ async fn verify_traces_in_langfuse() -> Result<(), Box<dyn std::error::Error>> {
     // Query for recent traces
     let traces = client.list_traces().limit(10).call().await?;
 
-    // The response is a JSON value, so we check if it contains data
-    if let Some(data) = traces.get("data") {
-        if let Some(array) = data.as_array() {
-            if array.is_empty() {
-                println!("⚠️  No traces found in Langfuse yet. They may still be processing.");
-            } else {
-                println!("✅ Found {} traces in Langfuse!", array.len());
-                // Show first few trace IDs
-                for (i, trace) in array.iter().take(3).enumerate() {
-                    if let Some(id) = trace.get("id").and_then(|v| v.as_str()) {
-                        println!("   {}. Trace ID: {}", i + 1, id);
-                    }
-                }
-            }
-        } else {
-            println!("✅ Successfully connected to Langfuse API");
-        }
+    // The response is now a strongly-typed Traces struct
+    if traces.data.is_empty() {
+        println!("⚠️  No traces found in Langfuse yet. They may still be processing.");
     } else {
-        println!("⚠️  Unexpected response format from Langfuse");
+        println!("✅ Found {} traces in Langfuse!", traces.data.len());
+        // Show first few trace IDs
+        for (i, trace) in traces.data.iter().take(3).enumerate() {
+            println!("   {}. Trace ID: {}", i + 1, trace.id);
+        }
     }
 
     Ok(())
