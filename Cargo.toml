@@ -43,7 +43,7 @@ opentelemetry_sdk = { version = "0.31", features = ["trace", "rt-tokio", "experi
 tracing = "0.1"
 chrono = "0.4"
 serial_test = "3.0"
-langfuse-ergonomic = "0.3"
+langfuse-ergonomic = { path = "../langfuse-ergonomic" }
 serde_json = "1.0"
 
 [features]
