@@ -16,7 +16,7 @@ This crate provides OpenTelemetry components and utilities for integrating with 
 ```toml
 [dependencies]
 opentelemetry-langfuse = "*"
-opentelemetry_sdk = { version = "0.30", features = [
+opentelemetry_sdk = { version = "0.31", features = [
     "trace",
     "rt-tokio",
     "experimental_trace_batch_span_processor_with_async_runtime"
@@ -28,13 +28,10 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 ```rust
 use opentelemetry::global;
-use opentelemetry_langfuse::ExporterBuilder;
-use opentelemetry_sdk::trace::{
-    span_processor_with_async_runtime::BatchSpanProcessor,
-    SdkTracerProvider,
-};
-use opentelemetry_sdk::{runtime::Tokio, Resource};
 use opentelemetry::KeyValue;
+use opentelemetry_langfuse::ExporterBuilder;
+use opentelemetry_sdk::trace::SdkTracerProvider;
+use opentelemetry_sdk::Resource;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,10 +40,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Build tracer provider with BatchSpanProcessor
     let provider = SdkTracerProvider::builder()
-        .with_span_processor(BatchSpanProcessor::builder(exporter, Tokio).build())
-        .with_resource(Resource::builder().with_attributes(vec![
-            KeyValue::new("service.name", "my-service"),
-        ]).build())
+        .with_resource(
+            Resource::builder()
+                .with_attributes([KeyValue::new("service.name", "my-service")])
+                .build(),
+        )
+        .with_batch_exporter(exporter)
         .build();
 
     // Set as global provider
