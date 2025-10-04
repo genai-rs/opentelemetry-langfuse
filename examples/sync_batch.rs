@@ -67,6 +67,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Creating spans (they will be batched)...");
 
+    // Capture trace ID from first span
+    let mut captured_trace_id = String::new();
+
     // Simulate a web server handling requests
     for request_id in 1..=10 {
         let mut request_span = tracer
@@ -78,6 +81,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 KeyValue::new("request.id", request_id),
             ])
             .start(&tracer);
+
+        // Capture trace ID from the first request
+        if request_id == 1 {
+            captured_trace_id = request_span.span_context().trace_id().to_string();
+        }
 
         // Simulate request processing
         thread::sleep(Duration::from_millis(10));
@@ -118,7 +126,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Shutdown the provider - this flushes remaining spans
     drop(provider);
 
-    println!("\n✅ All spans exported in batches!");
+    println!("\nAll spans exported in batches!");
     println!("BatchSpanProcessor is ideal for production use:");
     println!("  - Better performance (less blocking)");
     println!("  - More efficient (fewer network calls)");
@@ -127,7 +135,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Verify traces were sent to Langfuse
     println!("\nVerifying traces in Langfuse...");
-    runtime.block_on(verify_traces_in_langfuse())?;
+    runtime.block_on(verify_traces_in_langfuse(&captured_trace_id))?;
 
     // Shutdown the runtime
     runtime.shutdown_timeout(Duration::from_secs(5));
@@ -135,7 +143,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn verify_traces_in_langfuse() -> Result<(), Box<dyn std::error::Error>> {
+async fn verify_traces_in_langfuse(
+    expected_trace_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     use langfuse_ergonomic::client::ClientBuilder;
 
     // Create Langfuse client using the same credentials
@@ -146,10 +156,19 @@ async fn verify_traces_in_langfuse() -> Result<(), Box<dyn std::error::Error>> {
 
     // The response is now a strongly-typed Traces struct
     if traces.data.is_empty() {
-        println!("⚠️  No traces found in Langfuse yet. They may still be processing.");
+        println!("WARNING: No traces found in Langfuse yet. They may still be processing.");
+        return Ok(());
+    }
+
+    println!("Found {} traces in Langfuse!", traces.data.len());
+
+    // Verify the expected trace ID is present
+    let found_expected = traces.data.iter().any(|trace| trace.id == expected_trace_id);
+
+    if found_expected {
+        println!("SUCCESS: Found expected trace ID: {}", expected_trace_id);
     } else {
-        println!("✅ Found {} traces in Langfuse!", traces.data.len());
-        // Show first few trace IDs
+        println!("WARNING: Expected trace ID {} not found yet. Recent trace IDs:", expected_trace_id);
         for (i, trace) in traces.data.iter().take(3).enumerate() {
             println!("   {}. Trace ID: {}", i + 1, trace.id);
         }
