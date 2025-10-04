@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 1: Using environment variables with default settings
     println!("1. Default configuration from environment:");
     let default_exporter = ExporterBuilder::from_env()?.build()?;
-    println!("   ✓ Created exporter with default settings\n");
+    println!("   Created exporter with default settings\n");
 
     // Example 2: Manual configuration without environment variables
     println!("2. Manual configuration:");
@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_basic_auth("pk-lf-your-key", "sk-lf-your-secret")
         .with_timeout(Duration::from_secs(30))
         .build()?;
-    println!("   ✓ Created exporter with explicit settings\n");
+    println!("   Created exporter with explicit settings\n");
 
     // Example 3: Custom HTTP client with proxy (commented out - requires proxy)
     println!("3. Custom HTTP client example (see code):");
@@ -67,7 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_header("X-Environment", "staging")
         .with_headers(vec![("X-Team", "backend"), ("X-Region", "us-west-2")])
         .build()?;
-    println!("   ✓ Added custom headers for metadata\n");
+    println!("   Added custom headers for metadata\n");
 
     // Example 5: Native TLS configuration (requires native-tls feature in your app)
     println!("5. Native TLS example (see code):");
@@ -123,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_http_client(production_client)
         .build()?;
 
-    println!("   ✓ Created production-ready exporter\n");
+    println!("   Created production-ready exporter\n");
 
     // Use one of the exporters with a tracer
     println!("=== Using the exporter ===\n");
@@ -155,7 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     drop(provider);
 
-    println!("✅ Configuration examples completed!");
+    println!("Configuration examples completed!");
     println!("\nKey takeaways:");
     println!("  - Use environment variables for standard deployments");
     println!("  - Use ExporterBuilder for programmatic configuration");
