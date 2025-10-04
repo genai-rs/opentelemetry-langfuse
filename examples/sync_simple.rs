@@ -158,12 +158,18 @@ async fn verify_traces_in_langfuse(
     println!("Found {} traces in Langfuse!", traces.data.len());
 
     // Verify the expected trace ID is present
-    let found_expected = traces.data.iter().any(|trace| trace.id == expected_trace_id);
+    let found_expected = traces
+        .data
+        .iter()
+        .any(|trace| trace.id == expected_trace_id);
 
     if found_expected {
         println!("SUCCESS: Found expected trace ID: {}", expected_trace_id);
     } else {
-        println!("WARNING: Expected trace ID {} not found yet. Recent trace IDs:", expected_trace_id);
+        println!(
+            "WARNING: Expected trace ID {} not found yet. Recent trace IDs:",
+            expected_trace_id
+        );
         for (i, trace) in traces.data.iter().take(3).enumerate() {
             println!("   {}. Trace ID: {}", i + 1, trace.id);
         }
