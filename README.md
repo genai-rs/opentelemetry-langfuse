@@ -30,8 +30,6 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 use opentelemetry::global;
 use opentelemetry::KeyValue;
 use opentelemetry_langfuse::ExporterBuilder;
-use opentelemetry_sdk::runtime::Tokio;
-use opentelemetry_sdk::trace::span_processor_with_async_runtime::BatchSpanProcessor;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use opentelemetry_sdk::Resource;
 
@@ -41,14 +39,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exporter = ExporterBuilder::from_env()?.build()?;
 
     // Build tracer provider with BatchSpanProcessor
-    // IMPORTANT: Explicitly provide Tokio runtime to avoid "no reactor running" panic
     let provider = SdkTracerProvider::builder()
         .with_resource(
             Resource::builder()
                 .with_attributes([KeyValue::new("service.name", "my-service")])
                 .build(),
         )
-        .with_span_processor(BatchSpanProcessor::builder(exporter, Tokio).build())
+        .with_batch_exporter(exporter)
         .build();
 
     // Set as global provider
