@@ -23,6 +23,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use opentelemetry::trace::{Span, SpanKind, Tracer};
     use opentelemetry::KeyValue;
     use opentelemetry_langfuse::ExporterBuilder;
+    use opentelemetry_sdk::runtime::Tokio;
+    use opentelemetry_sdk::trace::span_processor_with_async_runtime::BatchSpanProcessor;
     use opentelemetry_sdk::trace::SdkTracerProvider;
     use opentelemetry_sdk::Resource;
     use std::time::Duration;
@@ -36,7 +38,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exporter = ExporterBuilder::from_env()?.build()?;
 
     // Build a tracer provider with BatchSpanProcessor
-    // The batch processor uses the Tokio runtime from #[tokio::main]
+    // IMPORTANT: We must explicitly provide the Tokio runtime to BatchSpanProcessor
+    // to avoid "no reactor running" panic when exporting spans
     let provider = SdkTracerProvider::builder()
         .with_resource(
             Resource::builder()
@@ -48,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ])
                 .build(),
         )
-        .with_batch_exporter(exporter)
+        .with_span_processor(BatchSpanProcessor::builder(exporter, Tokio).build())
         .build();
 
     // Set as global provider
@@ -165,7 +168,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Shutdown to ensure all spans are flushed
     println!("Shutting down (flushing remaining spans)...");
-    drop(provider);
+    provider.shutdown()?;
 
     println!("\nAll spans exported in batches!");
     println!("Benefits of async + batch processing:");
