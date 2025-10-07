@@ -20,6 +20,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     use opentelemetry::trace::{Span, SpanKind, Tracer};
     use opentelemetry::KeyValue;
     use opentelemetry_langfuse::ExporterBuilder;
+    use opentelemetry_sdk::runtime::Tokio;
+    use opentelemetry_sdk::trace::span_processor_with_async_runtime::BatchSpanProcessor;
     use opentelemetry_sdk::trace::SdkTracerProvider;
     use opentelemetry_sdk::Resource;
     use std::thread;
@@ -42,7 +44,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exporter = ExporterBuilder::from_env()?.build()?;
 
     // Build a tracer provider with BatchSpanProcessor
-    // This will batch spans and export them periodically
+    // IMPORTANT: We must explicitly provide the Tokio runtime to BatchSpanProcessor
+    // to avoid "no reactor running" panic when exporting spans
     let provider = SdkTracerProvider::builder()
         .with_resource(
             Resource::builder()
@@ -53,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ])
                 .build(),
         )
-        .with_batch_exporter(exporter)
+        .with_span_processor(BatchSpanProcessor::builder(exporter, Tokio).build())
         .build();
 
     // Set as global provider
