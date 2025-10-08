@@ -100,16 +100,10 @@ impl LangfuseContext {
                 attrs.insert(attributes::TRACE_TAGS.to_string(), tags_json);
             } else {
                 // Fallback if existing isn't valid JSON
-                attrs.insert(
-                    attributes::TRACE_TAGS.to_string(),
-                    format!("[\"{}\"]", tag),
-                );
+                attrs.insert(attributes::TRACE_TAGS.to_string(), format!("[\"{}\"]", tag));
             }
         } else {
-            attrs.insert(
-                attributes::TRACE_TAGS.to_string(),
-                format!("[\"{}\"]", tag),
-            );
+            attrs.insert(attributes::TRACE_TAGS.to_string(), format!("[\"{}\"]", tag));
         }
         drop(attrs);
         self
