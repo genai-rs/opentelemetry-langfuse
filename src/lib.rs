@@ -70,12 +70,14 @@
 
 pub mod auth;
 pub mod constants;
+pub mod context;
 pub mod endpoint;
 pub mod error;
 pub mod exporter;
 
 // Re-export main types
 pub use auth::{build_auth_header, build_auth_header_from_env};
+pub use context::{LangfuseContext, LangfuseContextBuilder, GLOBAL_CONTEXT};
 pub use endpoint::{build_otlp_endpoint, build_otlp_endpoint_from_env};
 pub use error::{Error, Result};
 pub use exporter::{exporter, ExporterBuilder};
