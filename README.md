@@ -140,6 +140,82 @@ let exporter = ExporterBuilder::new()
 
 **Note on TLS**: TLS support comes from the `opentelemetry-otlp` crate's `reqwest-client` feature. If you're building a custom client with specific TLS requirements, ensure your `reqwest` client is configured with appropriate TLS features.
 
+## Context Helpers
+
+Similar to the [langfuse-python SDK](https://langfuse.com/docs/sdk/python#update-trace), this crate provides context helpers for setting trace-level attributes:
+
+```rust
+use opentelemetry_langfuse::context;
+
+// Set session and user IDs for grouping traces
+context::set_session_id("session-123");
+context::set_user_id("user-456");
+
+// Add tags for filtering
+context::add_tags(vec!["production".to_string(), "api-v2".to_string()]);
+
+// Set custom metadata
+context::set_metadata(serde_json::json!({
+    "environment": "production",
+    "version": "1.0.0"
+}));
+
+// These attributes will be automatically included in all subsequent spans
+```
+
+The context helpers use a global `GLOBAL_CONTEXT` that persists across your application. Clear it when needed:
+
+```rust
+context::clear();
+```
+
+You can also create isolated contexts using the builder pattern:
+
+```rust
+use opentelemetry_langfuse::LangfuseContextBuilder;
+
+let ctx = LangfuseContextBuilder::new()
+    .session_id("session-123")
+    .user_id("user-456")
+    .tags(vec!["tag1".to_string()])
+    .build();
+
+// Use ctx.get_attributes() to retrieve attributes for manual span creation
+```
+
+## Span Storage for Interceptor Patterns
+
+When building interceptors (e.g., for HTTP clients), span creation and completion happen in separate async calls. The `span_storage` module provides task-local storage to maintain span lifecycle across these boundaries:
+
+```rust
+use opentelemetry_langfuse::span_storage;
+use opentelemetry::trace::{Tracer, SpanKind};
+use opentelemetry::KeyValue;
+
+// Wrap your entire operation
+span_storage::with_storage(async {
+    let tracer = global::tracer("my-tracer");
+
+    // In before_request: create and store span
+    span_storage::create_and_store_span(
+        &tracer,
+        "http-request",
+        SpanKind::Client,
+        vec![KeyValue::new("http.method", "POST")]
+    );
+
+    // ... make HTTP request ...
+
+    // In after_response: add final attributes and end span
+    span_storage::add_span_attributes(vec![
+        KeyValue::new("http.status_code", 200)
+    ]);
+    span_storage::end_span_with_attributes(vec![]);
+}).await;
+```
+
+This pattern ensures proper span lifecycle management without requiring middleware, making it compatible with interceptor-based architectures.
+
 ## Testing
 
 The integration tests in [`tests/integration_test.rs`](tests/integration_test.rs) verify that traces are successfully exported to Langfuse and can be queried via the Langfuse API. The tests cover:
