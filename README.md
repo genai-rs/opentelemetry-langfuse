@@ -142,46 +142,46 @@ let exporter = ExporterBuilder::new()
 
 ## Context Helpers
 
-Similar to the [langfuse-python SDK](https://langfuse.com/docs/sdk/python#update-trace), this crate provides context helpers for setting trace-level attributes:
+Similar to the [langfuse-python SDK](https://langfuse.com/docs/sdk/python#update-trace), this crate provides a `LangfuseContext` struct for managing trace-level attributes:
 
 ```rust
-use opentelemetry_langfuse::context;
+use opentelemetry_langfuse::LangfuseContext;
+
+// Create a context instance (typically in your interceptor/middleware)
+let context = LangfuseContext::new();
 
 // Set session and user IDs for grouping traces
-context::set_session_id("session-123");
-context::set_user_id("user-456");
+context.set_session_id("session-123");
+context.set_user_id("user-456");
 
 // Add tags for filtering
-context::add_tags(vec!["production".to_string(), "api-v2".to_string()]);
+context.add_tags(vec!["production".to_string(), "api-v2".to_string()]);
 
 // Set custom metadata
-context::set_metadata(serde_json::json!({
+context.set_metadata(serde_json::json!({
     "environment": "production",
     "version": "1.0.0"
 }));
 
-// These attributes will be automatically included in all subsequent spans
+// Get attributes to add to spans
+let attributes = context.get_attributes();
 ```
 
-The context helpers use a global `GLOBAL_CONTEXT` that persists across your application. Clear it when needed:
-
-```rust
-context::clear();
-```
-
-You can also create isolated contexts using the builder pattern:
+You can also use the builder pattern:
 
 ```rust
 use opentelemetry_langfuse::LangfuseContextBuilder;
 
-let ctx = LangfuseContextBuilder::new()
+let context = LangfuseContextBuilder::new()
     .session_id("session-123")
     .user_id("user-456")
     .tags(vec!["tag1".to_string()])
     .build();
 
-// Use ctx.get_attributes() to retrieve attributes for manual span creation
+// Use context.get_attributes() to retrieve attributes for span creation
 ```
+
+**Note:** Each interceptor/middleware should maintain its own `LangfuseContext` instance rather than using global state. This provides better encapsulation and avoids shared mutable state.
 
 ## Span Storage for Interceptor Patterns
 

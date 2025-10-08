@@ -1,23 +1,28 @@
 //! Langfuse context helpers for setting trace attributes.
 //!
-//! Similar to the Python SDK's `langfuse_context`, this module provides helpers
-//! for setting trace-level attributes that will be included in all spans.
+//! This module provides a `LangfuseContext` struct that can be used to store
+//! trace-level attributes. This is typically used with interceptors or middleware
+//! where each instance maintains its own context.
 //!
 //! # Example
 //!
 //! ```no_run
-//! use opentelemetry_langfuse::context;
+//! use opentelemetry_langfuse::LangfuseContext;
+//!
+//! // Create a context instance
+//! let context = LangfuseContext::new();
 //!
 //! // Set session ID for grouping traces
-//! context::set_session_id("session-123");
+//! context.set_session_id("session-123");
 //!
 //! // Set user ID for attribution
-//! context::set_user_id("user-456");
+//! context.set_user_id("user-456");
 //!
 //! // Add tags for filtering
-//! context::add_tags(vec!["production".to_string(), "api-v2".to_string()]);
+//! context.add_tags(vec!["production".to_string(), "api-v2".to_string()]);
 //!
-//! // Now all spans will include these attributes
+//! // Get attributes to add to spans
+//! let attributes = context.get_attributes();
 //! ```
 
 use opentelemetry::KeyValue;
@@ -165,47 +170,6 @@ impl Default for LangfuseContext {
     fn default() -> Self {
         Self::new()
     }
-}
-
-// Global context instance
-lazy_static::lazy_static! {
-    /// Global Langfuse context that can be accessed from anywhere.
-    pub static ref GLOBAL_CONTEXT: LangfuseContext = LangfuseContext::new();
-}
-
-/// Helper function to set session ID on global context.
-pub fn set_session_id(session_id: impl Into<String>) {
-    GLOBAL_CONTEXT.set_session_id(session_id);
-}
-
-/// Helper function to set user ID on global context.
-pub fn set_user_id(user_id: impl Into<String>) {
-    GLOBAL_CONTEXT.set_user_id(user_id);
-}
-
-/// Helper function to add tags on global context.
-pub fn add_tags(tags: Vec<String>) {
-    GLOBAL_CONTEXT.add_tags(tags);
-}
-
-/// Helper function to add a single tag on global context.
-pub fn add_tag(tag: impl Into<String>) {
-    GLOBAL_CONTEXT.add_tag(tag);
-}
-
-/// Helper function to set metadata on global context.
-pub fn set_metadata(metadata: serde_json::Value) {
-    GLOBAL_CONTEXT.set_metadata(metadata);
-}
-
-/// Helper function to set trace name on global context.
-pub fn set_trace_name(name: impl Into<String>) {
-    GLOBAL_CONTEXT.set_trace_name(name);
-}
-
-/// Helper function to clear global context.
-pub fn clear() {
-    GLOBAL_CONTEXT.clear();
 }
 
 /// Builder pattern for fluent API.
