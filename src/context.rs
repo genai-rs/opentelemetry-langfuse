@@ -25,15 +25,18 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 /// Langfuse-specific attribute keys.
+///
+/// These follow the Langfuse OpenTelemetry conventions documented at:
+/// <https://langfuse.com/integrations/native/opentelemetry>
 pub mod attributes {
-    /// Session ID attribute key
-    pub const TRACE_SESSION_ID: &str = "langfuse.session_id";
-    /// User ID attribute key
-    pub const TRACE_USER_ID: &str = "langfuse.user_id";
-    /// Tags attribute key (JSON array string)
-    pub const TRACE_TAGS: &str = "langfuse.tags";
+    /// Session ID attribute key (Langfuse expects `langfuse.session.id` or `session.id`)
+    pub const TRACE_SESSION_ID: &str = "langfuse.session.id";
+    /// User ID attribute key (Langfuse expects `langfuse.user.id` or `user.id`)
+    pub const TRACE_USER_ID: &str = "langfuse.user.id";
+    /// Tags attribute key - must be a string array (Langfuse expects `langfuse.trace.tags`)
+    pub const TRACE_TAGS: &str = "langfuse.trace.tags";
     /// Metadata attribute key (JSON object string)
-    pub const TRACE_METADATA: &str = "langfuse.metadata";
+    pub const TRACE_METADATA: &str = "langfuse.trace.metadata";
     /// Trace name attribute key
     pub const TRACE_NAME: &str = "langfuse.trace.name";
 }

@@ -1,13 +1,19 @@
-//! Task-local span storage for managing OpenTelemetry span lifecycle across async boundaries.
+//! Span storage for managing OpenTelemetry span lifecycle in interceptor patterns.
 //!
-//! This module provides utilities for storing and retrieving OpenTelemetry contexts
-//! in task-local storage, enabling proper span lifecycle management in scenarios
-//! where span creation and completion happen in separate async calls (like interceptors).
+//! This module provides a global registry for storing spans across async boundaries,
+//! enabling proper span lifecycle management when span creation and completion
+//! happen in separate calls (like in HTTP interceptors).
 //!
-//! # Example - Interceptor Pattern
+//! # How It Works
+//!
+//! 1. In `before_request`: Create span, generate unique ID, store in registry
+//! 2. Pass the span ID through request metadata
+//! 3. In `after_response`: Retrieve span by ID, add final attributes, end span
+//!
+//! # Example
 //!
 //! ```no_run
-//! use opentelemetry::trace::{Tracer, TracerProvider, SpanKind};
+//! use opentelemetry::trace::{Tracer, SpanKind};
 //! use opentelemetry::global;
 //! use opentelemetry::KeyValue;
 //! use opentelemetry_langfuse::span_storage;
@@ -15,117 +21,66 @@
 //! # async fn example() {
 //! let tracer = global::tracer("my-tracer");
 //!
-//! // Wrap your entire operation in with_storage
-//! span_storage::with_storage(async {
-//!     // In before_request interceptor:
-//!     span_storage::create_and_store_span(
-//!         &tracer,
-//!         "my-operation",
-//!         SpanKind::Client,
-//!         vec![KeyValue::new("request.method", "POST")]
-//!     );
+//! // In before_request interceptor:
+//! let span_id = span_storage::create_and_store_span(
+//!     &tracer,
+//!     "my-operation",
+//!     SpanKind::Client,
+//!     vec![KeyValue::new("request.method", "POST")]
+//! );
 //!
-//!     // ... make HTTP request ...
+//! // Store span_id in request metadata so after_response can find it
+//! // metadata.insert("span_id", span_id);
 //!
-//!     // In after_response interceptor:
-//!     span_storage::add_span_attributes(vec![
-//!         KeyValue::new("response.status", "200")
-//!     ]);
-//!     span_storage::end_span_with_attributes(vec![]);
-//! }).await;
+//! // ... make HTTP request ...
+//!
+//! // In after_response interceptor (retrieve span_id from metadata):
+//! span_storage::add_span_attributes(&span_id, vec![
+//!     KeyValue::new("response.status", "200")
+//! ]);
+//! span_storage::end_span(&span_id, vec![]);
 //! # }
 //! ```
 
 use opentelemetry::trace::{SpanKind, TraceContextExt, Tracer};
 use opentelemetry::{Context, KeyValue};
-use std::cell::RefCell;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
-tokio::task_local! {
-    /// Task-local storage for the current OpenTelemetry context.
-    static CURRENT_CONTEXT: RefCell<Option<Context>>;
+lazy_static::lazy_static! {
+    /// Global registry of active spans, keyed by unique span ID.
+    static ref SPAN_REGISTRY: Arc<Mutex<HashMap<String, Context>>> = Arc::new(Mutex::new(HashMap::new()));
 }
 
-/// Execute a future with task-local span storage available.
-///
-/// This sets up the task-local storage scope that allows `store_span`,
-/// `get_context`, and `take_span` to work within the future.
-///
-/// # Example
-///
-/// ```no_run
-/// # use opentelemetry_langfuse::span_storage;
-/// # async fn example() {
-/// span_storage::with_storage(async {
-///     // Your interceptor-based code here
-///     // Can call store_span, get_context, take_span
-/// }).await;
-/// # }
-/// ```
-pub async fn with_storage<F, T>(f: F) -> T
-where
-    F: std::future::Future<Output = T>,
-{
-    CURRENT_CONTEXT.scope(RefCell::new(None), f).await
+/// Generate a unique span ID.
+fn generate_span_id() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    format!("span-{}", timestamp)
 }
 
-/// Store a span in task-local storage by wrapping it in a Context.
+/// Create a span and store it in the global registry.
 ///
-/// Must be called within a `with_storage` scope.
+/// Returns a unique span ID that can be used to retrieve and end the span later.
 ///
-/// # Type Parameters
-/// * `S` - The span type (must be Send + Sync + 'static)
-pub fn store_span<S>(span: S)
-where
-    S: opentelemetry::trace::Span + Send + Sync + 'static,
-{
-    let cx = Context::current_with_span(span);
-    if let Ok(cell) = CURRENT_CONTEXT.try_with(|c| {
-        *c.borrow_mut() = Some(cx);
-    }) {
-        cell
-    }
-}
-
-/// Get a reference to the current context from task-local storage.
+/// # Arguments
+/// * `tracer` - The OpenTelemetry tracer to use
+/// * `span_name` - Name for the span
+/// * `kind` - The span kind (Client, Server, Internal, etc.)
+/// * `attributes` - Initial attributes for the span
 ///
-/// Returns None if no context is stored or if called outside a `with_storage` scope.
-pub fn get_context() -> Option<Context> {
-    CURRENT_CONTEXT
-        .try_with(|c| c.borrow().clone())
-        .ok()
-        .flatten()
-}
-
-/// Check if a span is currently stored.
-///
-/// Must be called within a `with_storage` scope.
-pub fn has_span() -> bool {
-    CURRENT_CONTEXT
-        .try_with(|c| c.borrow().is_some())
-        .unwrap_or(false)
-}
-
-/// Add attributes to the current span stored in task-local storage.
-///
-/// If no span is stored, this is a no-op.
-/// Must be called within a `with_storage` scope.
-pub fn add_span_attributes(attributes: Vec<KeyValue>) {
-    let _ = CURRENT_CONTEXT.try_with(|c| {
-        if let Some(cx) = c.borrow().as_ref() {
-            cx.span().set_attributes(attributes);
-        }
-    });
-}
-
-/// Helper function to create and store a span in one call.
-///
-/// Must be called within a `with_storage` scope.
+/// # Returns
+/// A unique span ID string that must be passed to `add_span_attributes` and `end_span`
 pub fn create_and_store_span<T>(
     tracer: &T,
     span_name: impl Into<String>,
     kind: SpanKind,
     attributes: Vec<KeyValue>,
-) where
+) -> String
+where
     T: Tracer,
     T::Span: Send + Sync + 'static,
 {
@@ -135,22 +90,68 @@ pub fn create_and_store_span<T>(
         .with_attributes(attributes)
         .start(tracer);
 
-    store_span(span);
+    let cx = Context::current_with_span(span);
+    let span_id = generate_span_id();
+
+    let mut registry = SPAN_REGISTRY.lock().unwrap();
+    registry.insert(span_id.clone(), cx);
+
+    span_id
 }
 
-/// End the current span with optional final attributes.
+/// Add attributes to a stored span.
 ///
-/// Must be called within a `with_storage` scope.
-pub fn end_span_with_attributes(attributes: Vec<KeyValue>) {
-    let _ = CURRENT_CONTEXT.try_with(|c| {
-        if let Some(cx) = c.borrow_mut().take() {
-            let span = cx.span();
-            if !attributes.is_empty() {
-                span.set_attributes(attributes);
-            }
-            span.end();
+/// # Arguments
+/// * `span_id` - The span ID returned from `create_and_store_span`
+/// * `attributes` - Attributes to add to the span
+pub fn add_span_attributes(span_id: &str, attributes: Vec<KeyValue>) {
+    let registry = SPAN_REGISTRY.lock().unwrap();
+    if let Some(cx) = registry.get(span_id) {
+        cx.span().set_attributes(attributes);
+    }
+}
+
+/// Set the status of a stored span to error.
+///
+/// # Arguments
+/// * `span_id` - The span ID returned from `create_and_store_span`
+/// * `error_message` - Description of the error
+pub fn set_span_error(span_id: &str, error_message: impl Into<String>) {
+    use opentelemetry::trace::Status;
+    let registry = SPAN_REGISTRY.lock().unwrap();
+    if let Some(cx) = registry.get(span_id) {
+        cx.span().set_status(Status::error(error_message.into()));
+    }
+}
+
+/// End a stored span and remove it from the registry.
+///
+/// # Arguments
+/// * `span_id` - The span ID returned from `create_and_store_span`
+/// * `final_attributes` - Optional final attributes to add before ending
+pub fn end_span(span_id: &str, final_attributes: Vec<KeyValue>) {
+    let mut registry = SPAN_REGISTRY.lock().unwrap();
+    if let Some(cx) = registry.remove(span_id) {
+        let span = cx.span();
+        if !final_attributes.is_empty() {
+            span.set_attributes(final_attributes);
         }
-    });
+        span.end();
+    }
+}
+
+/// Check if a span exists in the registry.
+pub fn has_span(span_id: &str) -> bool {
+    let registry = SPAN_REGISTRY.lock().unwrap();
+    registry.contains_key(span_id)
+}
+
+/// Get the current number of active spans in the registry.
+///
+/// Useful for debugging and monitoring.
+pub fn active_span_count() -> usize {
+    let registry = SPAN_REGISTRY.lock().unwrap();
+    registry.len()
 }
 
 #[cfg(test)]
@@ -158,71 +159,58 @@ mod tests {
     use super::*;
     use opentelemetry::trace::noop::NoopTracer;
 
-    #[tokio::test]
-    async fn test_with_storage() {
-        with_storage(async {
-            let tracer = NoopTracer::new();
-            let span = tracer.span_builder("test").start(&tracer);
+    #[test]
+    fn test_span_lifecycle() {
+        let tracer = NoopTracer::new();
 
-            store_span(span);
+        // Create and store span
+        let span_id = create_and_store_span(
+            &tracer,
+            "test-span",
+            SpanKind::Client,
+            vec![KeyValue::new("test", "value")],
+        );
 
-            // Verify we can retrieve the context
-            let ctx = get_context();
-            assert!(ctx.is_some());
-        })
-        .await;
+        // Verify span exists
+        assert!(has_span(&span_id));
+        assert_eq!(active_span_count(), 1);
+
+        // Add attributes
+        add_span_attributes(&span_id, vec![KeyValue::new("additional", "attr")]);
+
+        // End span
+        end_span(&span_id, vec![KeyValue::new("final", "attr")]);
+
+        // Verify span is removed
+        assert!(!has_span(&span_id));
+        assert_eq!(active_span_count(), 0);
     }
 
-    #[tokio::test]
-    async fn test_create_and_store() {
-        with_storage(async {
-            let tracer = NoopTracer::new();
+    #[test]
+    fn test_multiple_spans() {
+        let tracer = NoopTracer::new();
 
-            create_and_store_span(&tracer, "test-span", SpanKind::Client, vec![]);
+        let span_id1 = create_and_store_span(&tracer, "span1", SpanKind::Client, vec![]);
+        let span_id2 = create_and_store_span(&tracer, "span2", SpanKind::Client, vec![]);
 
-            let ctx = get_context();
-            assert!(ctx.is_some());
-        })
-        .await;
+        assert_eq!(active_span_count(), 2);
+        assert!(has_span(&span_id1));
+        assert!(has_span(&span_id2));
+
+        end_span(&span_id1, vec![]);
+        assert_eq!(active_span_count(), 1);
+        assert!(!has_span(&span_id1));
+        assert!(has_span(&span_id2));
+
+        end_span(&span_id2, vec![]);
+        assert_eq!(active_span_count(), 0);
     }
 
-    #[tokio::test]
-    async fn test_add_attributes() {
-        with_storage(async {
-            let tracer = NoopTracer::new();
-            let span = tracer.span_builder("test").start(&tracer);
-
-            store_span(span);
-            add_span_attributes(vec![KeyValue::new("test", "value")]);
-
-            // No assertion needed - just verify it doesn't panic
-        })
-        .await;
-    }
-
-    #[tokio::test]
-    async fn test_end_span() {
-        with_storage(async {
-            let tracer = NoopTracer::new();
-            let span = tracer.span_builder("test").start(&tracer);
-
-            store_span(span);
-            end_span_with_attributes(vec![KeyValue::new("final", "attr")]);
-
-            // Verify span was taken
-            let ctx = get_context();
-            assert!(ctx.is_none());
-        })
-        .await;
-    }
-
-    #[tokio::test]
-    async fn test_outside_scope() {
-        // These should not panic when called outside with_storage
-        let ctx = get_context();
-        assert!(ctx.is_none());
-
-        add_span_attributes(vec![]);
-        end_span_with_attributes(vec![]);
+    #[test]
+    fn test_nonexistent_span() {
+        // These should not panic
+        add_span_attributes("nonexistent", vec![]);
+        end_span("nonexistent", vec![]);
+        assert!(!has_span("nonexistent"));
     }
 }
