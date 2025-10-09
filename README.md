@@ -181,9 +181,9 @@ let context = LangfuseContextBuilder::new()
 // Use context.get_attributes() to retrieve attributes for span creation
 ```
 
-**Note:** Each interceptor/middleware should maintain its own `LangfuseContext` instance rather than using global state. This provides better encapsulation and avoids shared mutable state.
+**Design Note:** `LangfuseContext` uses an instance-based design (no global state). Create instances as needed for your use case.
 
-For an example of using `LangfuseContext` in an interceptor pattern, see the [openai-ergonomic](https://github.com/genai-rs/openai-ergonomic) library's `LangfuseInterceptor` implementation.
+For an example integration, see the [openai-ergonomic](https://github.com/genai-rs/openai-ergonomic) library's `LangfuseInterceptor`.
 
 ## Testing
 
