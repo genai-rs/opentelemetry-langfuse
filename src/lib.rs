@@ -74,7 +74,6 @@ pub mod context;
 pub mod endpoint;
 pub mod error;
 pub mod exporter;
-pub mod span_storage;
 
 // Re-export main types
 pub use auth::{build_auth_header, build_auth_header_from_env};
