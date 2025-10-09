@@ -183,38 +183,7 @@ let context = LangfuseContextBuilder::new()
 
 **Note:** Each interceptor/middleware should maintain its own `LangfuseContext` instance rather than using global state. This provides better encapsulation and avoids shared mutable state.
 
-## Span Storage for Interceptor Patterns
-
-When building interceptors (e.g., for HTTP clients), span creation and completion happen in separate async calls. The `span_storage` module provides task-local storage to maintain span lifecycle across these boundaries:
-
-```rust
-use opentelemetry_langfuse::span_storage;
-use opentelemetry::trace::{Tracer, SpanKind};
-use opentelemetry::KeyValue;
-
-// Wrap your entire operation
-span_storage::with_storage(async {
-    let tracer = global::tracer("my-tracer");
-
-    // In before_request: create and store span
-    span_storage::create_and_store_span(
-        &tracer,
-        "http-request",
-        SpanKind::Client,
-        vec![KeyValue::new("http.method", "POST")]
-    );
-
-    // ... make HTTP request ...
-
-    // In after_response: add final attributes and end span
-    span_storage::add_span_attributes(vec![
-        KeyValue::new("http.status_code", 200)
-    ]);
-    span_storage::end_span_with_attributes(vec![]);
-}).await;
-```
-
-This pattern ensures proper span lifecycle management without requiring middleware, making it compatible with interceptor-based architectures.
+For an example of using `LangfuseContext` in an interceptor pattern, see the [openai-ergonomic](https://github.com/genai-rs/openai-ergonomic) library's `LangfuseInterceptor` implementation.
 
 ## Testing
 
