@@ -147,38 +147,21 @@ Similar to the [langfuse-python SDK](https://langfuse.com/docs/sdk/python#update
 ```rust
 use opentelemetry_langfuse::LangfuseContext;
 
-// Create a context instance (typically in your interceptor/middleware)
+// Create a context instance
 let context = LangfuseContext::new();
 
-// Set session and user IDs for grouping traces
-context.set_session_id("session-123");
-context.set_user_id("user-456");
-
-// Add tags for filtering
-context.add_tags(vec!["production".to_string(), "api-v2".to_string()]);
-
-// Set custom metadata
-context.set_metadata(serde_json::json!({
-    "environment": "production",
-    "version": "1.0.0"
-}));
+// Use fluent API for configuration
+context
+    .set_session_id("session-123")
+    .set_user_id("user-456")
+    .add_tags(vec!["production".to_string(), "api-v2".to_string()])
+    .set_metadata(serde_json::json!({
+        "environment": "production",
+        "version": "1.0.0"
+    }));
 
 // Get attributes to add to spans
 let attributes = context.get_attributes();
-```
-
-You can also use the builder pattern:
-
-```rust
-use opentelemetry_langfuse::LangfuseContextBuilder;
-
-let context = LangfuseContextBuilder::new()
-    .session_id("session-123")
-    .user_id("user-456")
-    .tags(vec!["tag1".to_string()])
-    .build();
-
-// Use context.get_attributes() to retrieve attributes for span creation
 ```
 
 **Design Note:** `LangfuseContext` uses an instance-based design (no global state). Create instances as needed for your use case.
