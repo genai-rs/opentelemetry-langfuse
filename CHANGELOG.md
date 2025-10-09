@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.5.0...v0.5.1) - 2025-10-09
+
+### Added
+
+- add task-local span storage for interceptor pattern
+- add Langfuse context helpers for Python SDK-like API
+- update examples and tests to use strongly-typed langfuse-ergonomic responses
+
+### Fixed
+
+- apply cargo fmt formatting
+- correct Langfuse attribute names and add error status support
+
+### Other
+
+- remove redundant LangfuseContextBuilder
+- remove interceptor-specific language from README
+- clean up README and optimize dependencies
+- remove span_storage module
+- remove GLOBAL_CONTEXT in favor of instance-based context
+- add Context Helpers and Span Storage sections to README
+- Use explicit BatchSpanProcessor pattern to avoid runtime panic
+- Revert "Fix: Use explicit BatchSpanProcessor pattern to avoid runtime panic"
+- Use explicit BatchSpanProcessor pattern to avoid runtime panic
+- update README with correct OpenTelemetry version and simplified API example
+- Fix formatting issues
+- Remove emojis and improve trace validation in examples
+- Fix compatibility with langfuse-ergonomic 0.4
+- *(deps)* Update Rust crate langfuse-ergonomic to 0.4
+- ensure release-plz triggers downstream CI
+- *(deps)* migrate config renovate.json5
+
 ## [0.5.0](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.4.0...v0.5.0) - 2025-10-02
 
 ### Changed
