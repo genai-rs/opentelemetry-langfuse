@@ -166,68 +166,6 @@ impl Default for LangfuseContext {
     }
 }
 
-/// Builder pattern for fluent API.
-pub struct LangfuseContextBuilder {
-    context: LangfuseContext,
-}
-
-impl Default for LangfuseContextBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl LangfuseContextBuilder {
-    /// Create a new builder.
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            context: LangfuseContext::new(),
-        }
-    }
-
-    /// Set session ID.
-    #[must_use]
-    pub fn session_id(self, session_id: impl Into<String>) -> Self {
-        self.context.set_session_id(session_id);
-        self
-    }
-
-    /// Set user ID.
-    #[must_use]
-    pub fn user_id(self, user_id: impl Into<String>) -> Self {
-        self.context.set_user_id(user_id);
-        self
-    }
-
-    /// Add tags.
-    #[must_use]
-    pub fn tags(self, tags: Vec<String>) -> Self {
-        self.context.add_tags(tags);
-        self
-    }
-
-    /// Set metadata.
-    #[must_use]
-    pub fn metadata(self, metadata: serde_json::Value) -> Self {
-        self.context.set_metadata(metadata);
-        self
-    }
-
-    /// Set trace name.
-    #[must_use]
-    pub fn trace_name(self, name: impl Into<String>) -> Self {
-        self.context.set_trace_name(name);
-        self
-    }
-
-    /// Build the context.
-    #[must_use]
-    pub fn build(self) -> LangfuseContext {
-        self.context
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -270,13 +208,12 @@ mod tests {
     }
 
     #[test]
-    fn test_builder() {
-        let ctx = LangfuseContextBuilder::new()
-            .session_id("session-123")
-            .user_id("user-456")
-            .tags(vec!["tag1".to_string()])
-            .trace_name("my-trace")
-            .build();
+    fn test_fluent_api() {
+        let ctx = LangfuseContext::new();
+        ctx.set_session_id("session-123")
+            .set_user_id("user-456")
+            .add_tags(vec!["tag1".to_string()])
+            .set_trace_name("my-trace");
 
         assert!(ctx.has_attribute(attributes::TRACE_SESSION_ID));
         assert!(ctx.has_attribute(attributes::TRACE_USER_ID));
