@@ -4,7 +4,7 @@
 [![Documentation](https://docs.rs/opentelemetry-langfuse/badge.svg)](https://docs.rs/opentelemetry-langfuse)
 [![CI](https://github.com/genai-rs/opentelemetry-langfuse/workflows/CI/badge.svg)](https://github.com/genai-rs/opentelemetry-langfuse/actions)
 [![codecov](https://codecov.io/gh/genai-rs/opentelemetry-langfuse/branch/main/graph/badge.svg)](https://codecov.io/gh/genai-rs/opentelemetry-langfuse)
-[![MSRV](https://img.shields.io/badge/MSRV-1.82-blue)](https://blog.rust-lang.org/2024/10/17/Rust-1.82.0.html)
+[![MSRV](https://img.shields.io/badge/MSRV-1.83-blue)](https://blog.rust-lang.org/2024/11/28/Rust-1.83.0.html)
 [![License](https://img.shields.io/crates/l/opentelemetry-langfuse)](./LICENSE-MIT)
 
 OpenTelemetry integration for [Langfuse](https://langfuse.com), the open-source LLM observability platform.
