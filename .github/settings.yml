@@ -55,13 +55,13 @@ branches:
           # Testing (all combinations)
           - "Test (ubuntu-latest / stable)"
           - "Test (ubuntu-latest / beta)"
-          - "Test (ubuntu-latest / 1.82)"
+          - "Test (ubuntu-latest / 1.83)"
           - "Test (macos-latest / stable)"
           - "Test (macos-latest / beta)"
-          - "Test (macos-latest / 1.82)"
+          - "Test (macos-latest / 1.83)"
           - "Test (windows-latest / stable)"
           - "Test (windows-latest / beta)"
-          - "Test (windows-latest / 1.82)"
+          - "Test (windows-latest / 1.83)"
           
           # Security checks
           - "Cargo Audit"
