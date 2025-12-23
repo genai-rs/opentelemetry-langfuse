@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.6.0...v0.6.1) - 2025-12-23
+
+### Other
+
+- *(deps)* Update rust patch updates
+- install latest cargo-deny
+- *(deps)* Update rust patch updates
+- *(deps)* Update actions/checkout action to v6
+- raise msrv to 1.83
+- *(deps)* Update rust patch updates
+- fix Renovate strategy (genai-rs-15)
+- *(deps)* Update Rust crate langfuse-ergonomic to 0.6
+- *(deps)* Update github/codeql-action action to v4
+
 ## [0.6.0](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.5.0...v0.6.0) - 2025-10-09
 
 ### Added
