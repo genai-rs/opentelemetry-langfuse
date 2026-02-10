@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ### Prerequisites
 
-- Rust 1.83 or later (MSRV)
+- Rust 1.88 or later (MSRV)
 - Cargo
 - A Langfuse account for integration testing (optional but recommended)
 
