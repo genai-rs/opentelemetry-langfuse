@@ -4,7 +4,7 @@
 [![Documentation](https://docs.rs/opentelemetry-langfuse/badge.svg)](https://docs.rs/opentelemetry-langfuse)
 [![CI](https://github.com/genai-rs/opentelemetry-langfuse/workflows/CI/badge.svg)](https://github.com/genai-rs/opentelemetry-langfuse/actions)
 [![codecov](https://codecov.io/gh/genai-rs/opentelemetry-langfuse/branch/main/graph/badge.svg)](https://codecov.io/gh/genai-rs/opentelemetry-langfuse)
-[![MSRV](https://img.shields.io/badge/MSRV-1.88-blue)](https://blog.rust-lang.org/2025/06/26/Rust-1.88.0.html)
+[![MSRV](https://img.shields.io/badge/MSRV-1.93.1-blue)](https://www.rust-lang.org/tools/install)
 [![License](https://img.shields.io/crates/l/opentelemetry-langfuse)](./LICENSE-MIT)
 
 OpenTelemetry integration for [Langfuse](https://langfuse.com), the open-source LLM observability platform.
@@ -16,13 +16,27 @@ This crate provides OpenTelemetry components and utilities for integrating with 
 ```toml
 [dependencies]
 opentelemetry-langfuse = "*"
-opentelemetry_sdk = { version = "0.31", features = [
+opentelemetry_sdk = { version = "0.33", features = [
     "trace",
     "rt-tokio",
     "experimental_trace_batch_span_processor_with_async_runtime"
 ]}
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ```
+
+### Migrating from the 0.6 dependency stack
+
+Use Rust 1.93.1 or later, OpenTelemetry 0.33, and reqwest 0.13. The exporter
+returns an OpenTelemetry 0.33 `SpanExporter`, and `with_http_client` now accepts
+a reqwest 0.13 `Client`; clients and SDK types from the earlier versions are
+not interchangeable. Update these dependencies together in your application.
+`Error::OpenTelemetry` wraps `opentelemetry_sdk::error::OTelSdkError`, replacing
+the removed `TraceError` type.
+
+The integration tests and examples use `langfuse-ergonomic` 0.7.0 with
+`langfuse-client-base` 0.15.0. In that API, a trace name is `Option<String>`
+rather than `Option<Option<String>>`. Langfuse remains a test/example dependency;
+the exporter itself sends OTLP directly.
 
 ## Quick Start
 
@@ -138,7 +152,10 @@ let exporter = ExporterBuilder::new()
     .build()?;
 ```
 
-**Note on TLS**: TLS support comes from the `opentelemetry-otlp` crate's `reqwest-client` feature. If you're building a custom client with specific TLS requirements, ensure your `reqwest` client is configured with appropriate TLS features.
+**Note on TLS**: The `opentelemetry-otlp` crate's `reqwest-client` feature supplies
+the async HTTP transport, and `reqwest-rustls` explicitly enables HTTPS. This
+also applies when building the library without its test dependencies. Custom
+clients use reqwest 0.13 and can configure their own TLS backend.
 
 ## Context Helpers
 
@@ -170,6 +187,13 @@ For an example integration, see the [openai-ergonomic](https://github.com/genai-
 
 ## Testing
 
+Unit tests and the local HTTP transport regression test do not need credentials:
+
+```bash
+cargo test --lib --test otlp_transport_test
+cargo test --doc
+```
+
 The integration tests in [`tests/integration_test.rs`](tests/integration_test.rs) verify that traces are successfully exported to Langfuse and can be queried via the Langfuse API. The tests cover:
 
 - **SimpleSpanProcessor**: Immediate (blocking) export
@@ -185,7 +209,7 @@ export LANGFUSE_HOST="https://cloud.langfuse.com"
 cargo test --test integration_test
 ```
 
-The tests use unique timestamp-based IDs to track traces and verify they land in Langfuse by querying the API with the [`langfuse-ergonomic`](https://github.com/cstrnt/langfuse-ergonomic) client.
+The tests use unique timestamp-based IDs to track traces and verify they land in Langfuse by querying the API with the [`langfuse-ergonomic`](https://github.com/genai-rs/langfuse-ergonomic) client.
 
 ## License
 

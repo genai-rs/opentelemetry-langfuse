@@ -11,7 +11,7 @@ documentation = "https://docs.rs/opentelemetry-langfuse"
 readme = "README.md"
 keywords = ["opentelemetry", "langfuse", "observability", "tracing", "monitoring"]
 categories = ["api-bindings", "web-programming::http-client", "development-tools::debugging"]
-rust-version = "1.88"
+rust-version = "1.93.1"
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -27,25 +27,26 @@ bare_urls = "warn"
 unescaped_backticks = "warn"
 
 [dependencies]
-opentelemetry = { version = "^0.31", features = ["trace"] }
-opentelemetry_sdk = { version = "^0.31", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
-opentelemetry-otlp = { version = "^0.31", features = ["http-proto", "reqwest-client"] }
-base64 = "^0.22.1"
-thiserror = "^2.0.18"
+opentelemetry = { version = "^0.33.0", features = ["trace"] }
+opentelemetry_sdk = { version = "^0.33.0", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
+opentelemetry-otlp = { version = "^0.33.0", features = ["http-proto", "reqwest-client", "reqwest-rustls"] }
+base64 = "^0.23.1"
+thiserror = "^2.0.21"
 # We expose reqwest::Client in our public API (with_http_client method)
-# The actual HTTP/TLS functionality comes from opentelemetry-otlp's reqwest-client feature
-reqwest = { version = "^0.12.28", default-features = false }
-serde_json = "^1.0.149"
+# HTTP comes from reqwest-client; HTTPS comes from reqwest-rustls.
+reqwest = { version = "^0.13.5", default-features = false }
+serde_json = "^1.0.151"
 
 
 [dev-dependencies]
-tokio = { version = "^1.0", features = ["rt-multi-thread", "macros", "time"] }
-opentelemetry_sdk = { version = "^0.31", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
+tokio = { version = "^1.53.2", features = ["rt-multi-thread", "macros", "time"] }
+opentelemetry_sdk = { version = "^0.33.0", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
 tracing = "^0.1.44"
-chrono = "^0.4.43"
-serial_test = "^3.0"
-langfuse-ergonomic = "^0.6.3"
-serde_json = "^1.0.149"
+chrono = "^0.4.45"
+serial_test = "^4.0.1"
+langfuse-ergonomic = "^0.7.0"
+mockito = { version = "^1.7.2", default-features = false }
+serde_json = "^1.0.151"
 
 [features]
 default = []

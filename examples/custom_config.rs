@@ -73,10 +73,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("5. Native TLS example (see code):");
     /*
     // Add to your Cargo.toml:
-    // reqwest = { version = "0.12", features = ["native-tls"] }
+    // reqwest = { version = "0.13", features = ["native-tls"] }
 
     let native_tls_client = reqwest::Client::builder()
-        .use_native_tls()
+        .tls_backend_native()
         .build()?;
 
     let native_tls_exporter = ExporterBuilder::from_env()?

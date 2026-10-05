@@ -1,6 +1,6 @@
 //! Error types for the opentelemetry-langfuse library.
 
-use opentelemetry_sdk::trace::TraceError;
+use opentelemetry_sdk::error::OTelSdkError;
 use thiserror::Error;
 
 /// Error type for opentelemetry-langfuse operations.
@@ -14,9 +14,9 @@ pub enum Error {
     #[error("Missing configuration: {0}")]
     MissingConfiguration(&'static str),
 
-    /// OpenTelemetry trace error.
+    /// OpenTelemetry SDK error.
     #[error("OpenTelemetry error: {0}")]
-    OpenTelemetry(#[from] TraceError),
+    OpenTelemetry(#[from] OTelSdkError),
 
     /// OTLP exporter build error.
     #[error("OTLP exporter error: {0}")]
