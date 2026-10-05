@@ -6,6 +6,42 @@ use opentelemetry_sdk::trace::{SdkTracerProvider, SpanExporter};
 use std::time::{Duration, SystemTime};
 
 #[tokio::test]
+async fn default_client_times_out_while_waiting_for_response_body(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut server = mockito::Server::new_async().await;
+    let request = server
+        .mock("POST", "/api/public/otel/v1/traces")
+        .with_status(200)
+        .with_header("content-type", "application/x-protobuf")
+        .with_chunked_body(|_| {
+            // Headers arrive immediately; finishing the body exceeds the deadline.
+            std::thread::sleep(Duration::from_millis(500));
+            Ok(())
+        })
+        .expect(1)
+        .create_async()
+        .await;
+    let exporter = ExporterBuilder::new()
+        .with_host(&server.url())
+        .with_basic_auth("public-test", "secret-test")
+        .with_timeout(Duration::from_millis(100))
+        .build()?;
+    let provider = SdkTracerProvider::builder().build();
+    let mut span = provider.tracer("timeout-regression").start("slow-response");
+    let mut data = span.exported_data().expect("span must be sampled");
+    data.end_time = SystemTime::now();
+    span.end();
+
+    let result = tokio::time::timeout(Duration::from_secs(2), exporter.export(vec![data]))
+        .await
+        .expect("the configured HTTP request timeout must bound the export");
+    assert!(result.is_err(), "an incomplete response must time out");
+    request.assert_async().await;
+    provider.shutdown()?;
+    Ok(())
+}
+
+#[tokio::test]
 async fn export_span_with_default_and_custom_reqwest_clients(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut server = mockito::Server::new_async().await;

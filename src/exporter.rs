@@ -73,7 +73,11 @@ impl ExporterBuilder {
         self
     }
 
-    /// Sets the HTTP timeout for the exporter.
+    /// Sets the OTLP export timeout.
+    ///
+    /// The default HTTP client also uses this as its request timeout. A custom
+    /// client must configure its own request timeout with
+    /// `reqwest::ClientBuilder::timeout`.
     ///
     /// # Arguments
     ///
@@ -85,9 +89,12 @@ impl ExporterBuilder {
 
     /// Sets a custom HTTP client for the exporter.
     ///
-    /// By default, a new reqwest::Client will be created. Use this method
+    /// By default, OTLP creates a reqwest client with its configured timeout.
+    /// Use this method
     /// if you need custom configuration like proxy settings, custom certificates,
     /// or connection pooling.
+    /// Configure a request timeout on the custom client itself; the OTLP export
+    /// timeout controls its retry budget but cannot interrupt a pending request.
     ///
     /// # Arguments
     ///
@@ -227,14 +234,16 @@ impl ExporterBuilder {
             }
         }
 
-        // Build HTTP config with client
-        let http_client = self.http_client.unwrap_or_default();
-
         let mut http_config = SpanExporter::builder()
             .with_http()
-            .with_http_client(http_client)
             .with_endpoint(endpoint)
             .with_headers(headers);
+
+        // Let OTLP construct its default client with the resolved request timeout.
+        // A reqwest::Client::default() here would silently remove that deadline.
+        if let Some(http_client) = self.http_client {
+            http_config = http_config.with_http_client(http_client);
+        }
 
         // Apply timeout if configured
         if let Some(timeout) = self.timeout {

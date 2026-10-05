@@ -162,6 +162,11 @@ the async HTTP transport, and `reqwest-rustls` explicitly enables HTTPS. This
 also applies when building the library without its test dependencies. Custom
 clients use reqwest 0.13 and can configure their own TLS backend.
 
+The default HTTP client uses OTLP's resolved request timeout (10 seconds unless
+overridden by OTLP environment variables or `with_timeout`). Custom clients must
+set their own `reqwest::ClientBuilder::timeout`, as in the example above:
+the exporter's retry budget cannot interrupt an unbounded custom-client request.
+
 ## Context Helpers
 
 Similar to the [langfuse-python SDK](https://langfuse.com/docs/sdk/python#update-trace), this crate provides a `LangfuseContext` struct for managing trace-level attributes:
