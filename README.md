@@ -113,6 +113,11 @@ let exporter = ExporterBuilder::from_env()?
     .build()?;
 ```
 
+For real-time reads through Langfuse Cloud/v4's Observations API v2, add
+`.with_header("x-langfuse-ingestion-version", "4")` before `.build()`.
+Langfuse documents this header in its [Public API guide](https://langfuse.com/docs/api-and-data-platform/features/public-api).
+Without it, direct OTLP exports can take up to 15 minutes to appear in v2 reads.
+
 ## Manual Configuration
 
 You can also configure the exporter programmatically:
@@ -187,10 +192,10 @@ For an example integration, see the [openai-ergonomic](https://github.com/genai-
 
 ## Testing
 
-Unit tests and the local HTTP transport regression test do not need credentials:
+Unit tests and the local HTTP transport/query regression tests do not need credentials:
 
 ```bash
-cargo test --lib --test otlp_transport_test
+cargo test --lib --test otlp_transport_test --test langfuse_query_test
 cargo test --doc
 ```
 
@@ -209,7 +214,12 @@ export LANGFUSE_HOST="https://cloud.langfuse.com"
 cargo test --test integration_test
 ```
 
-The tests use unique timestamp-based IDs to track traces and verify they land in Langfuse by querying the API with the [`langfuse-ergonomic`](https://github.com/genai-rs/langfuse-ergonomic) client.
+The live tests require Langfuse Cloud or self-hosted v4. They query the exact
+exported trace ID, span ID, and name through Observations API v2, with a bounded
+time range and a five-minute polling budget. They reuse the
+[`langfuse-ergonomic`](https://github.com/genai-rs/langfuse-ergonomic) client's
+authenticated transport, respect `Retry-After` on rate limits, and fail immediately
+on authentication errors. Both ingestion and verification use `LANGFUSE_HOST`.
 
 ## License
 

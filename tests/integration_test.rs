@@ -14,6 +14,8 @@
 //! cargo test --test integration_test
 //! ```
 
+mod support;
+
 use chrono::Utc;
 use langfuse_ergonomic::client::ClientBuilder;
 use opentelemetry::trace::{Span, SpanKind, Tracer, TracerProvider};
@@ -40,84 +42,31 @@ fn generate_test_id(test_name: &str) -> String {
     )
 }
 
-/// Helper to verify traces in Langfuse by searching for a specific test ID
-/// Polls Langfuse API with retries to handle eventual consistency
-async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::error::Error>> {
-    println!("  Polling Langfuse API for trace with test_id: {}", test_id);
+/// Verify the exact exported span, without scanning unrelated project traces.
+async fn verify_trace_in_langfuse(
+    query: &support::ObservationQuery,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let host =
+        std::env::var("LANGFUSE_HOST").unwrap_or_else(|_| "https://cloud.langfuse.com".to_string());
+    let client = ClientBuilder::from_env()?.base_url(host).build()?;
+    support::verify_observation(
+        &client,
+        query,
+        Duration::from_secs(300),
+        Duration::from_secs(30),
+    )
+    .await
+}
 
-    let client = ClientBuilder::from_env()?.build()?;
-
-    // Retry configuration: poll up to 40 times with 3 second delays
-    // This gives Langfuse up to 2 minutes to process the trace
-    // Handles slow processing on different platforms and eventual consistency
-    const MAX_ATTEMPTS: u32 = 40;
-    const RETRY_DELAY_SECS: u64 = 3;
-
-    for attempt in 1..=MAX_ATTEMPTS {
-        println!(
-            "  Attempt {}/{}: Querying Langfuse API...",
-            attempt, MAX_ATTEMPTS
-        );
-
-        // Query for recent traces with timeout
-        let traces = match tokio::time::timeout(
-            Duration::from_secs(10),
-            client.list_traces().limit(50).call(),
-        )
-        .await
-        {
-            Ok(Ok(traces)) => traces,
-            Ok(Err(e)) => {
-                println!("  ⚠ API error on attempt {}: {}", attempt, e);
-                if attempt < MAX_ATTEMPTS {
-                    sleep(Duration::from_secs(RETRY_DELAY_SECS)).await;
-                    continue;
-                }
-                return Err(e.into());
-            }
-            Err(_) => {
-                println!("  ⚠ Timeout on attempt {}", attempt);
-                if attempt < MAX_ATTEMPTS {
-                    sleep(Duration::from_secs(RETRY_DELAY_SECS)).await;
-                    continue;
-                }
-                return Err("Timeout querying Langfuse API".into());
-            }
-        };
-
-        // Check if we can find our trace by the test_id attribute
-        // The response is now a strongly-typed Traces struct
-        println!("  Found {} total traces in response", traces.data.len());
-
-        for trace in &traces.data {
-            // Check if trace name contains our test_id
-            if let Some(name) = &trace.name {
-                if name.contains(test_id) {
-                    println!("  ✓ Found matching trace: {} (attempt {})", name, attempt);
-                    return Ok(true);
-                }
-            }
-            // Also check metadata
-            if let Some(Some(metadata)) = &trace.metadata {
-                let metadata_str = serde_json::to_string(metadata)?;
-                if metadata_str.contains(test_id) {
-                    println!("  ✓ Found matching trace in metadata (attempt {})", attempt);
-                    return Ok(true);
-                }
-            }
-        }
-
-        if attempt < MAX_ATTEMPTS {
-            println!(
-                "  ✗ Trace not found yet, waiting {} seconds before retry...",
-                RETRY_DELAY_SECS
-            );
-            sleep(Duration::from_secs(RETRY_DELAY_SECS)).await;
-        }
+fn observation_query(span: &impl Span, name: &str) -> support::ObservationQuery {
+    let now = Utc::now();
+    support::ObservationQuery {
+        trace_id: span.span_context().trace_id().to_string(),
+        span_id: span.span_context().span_id().to_string(),
+        name: name.to_string(),
+        from_start_time: (now - chrono::Duration::minutes(1)).to_rfc3339(),
+        to_start_time: (now + chrono::Duration::minutes(1)).to_rfc3339(),
     }
-
-    println!("  ✗ Trace not found after {} attempts", MAX_ATTEMPTS);
-    Ok(false)
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -126,7 +75,10 @@ async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> 
     let test_id = generate_test_id("simple");
 
     // Create exporter with SimpleSpanProcessor (exports immediately, blocking)
-    let exporter = ExporterBuilder::from_env()?.build()?;
+    let exporter = ExporterBuilder::from_env()?
+        // Required for real-time visibility in the Cloud/v4 Observations API v2.
+        .with_header("x-langfuse-ingestion-version", "4")
+        .build()?;
     let provider = SdkTracerProvider::builder()
         .with_resource(
             Resource::builder()
@@ -143,6 +95,7 @@ async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> 
 
     // Use provider directly instead of global (to avoid conflicts between tests)
     let tracer = provider.tracer("integration-test");
+    let query;
     {
         let mut span = tracer
             .span_builder(test_id.clone())
@@ -155,19 +108,15 @@ async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> 
 
         sleep(Duration::from_millis(50)).await;
         span.set_attribute(KeyValue::new("test.status", "completed"));
+        query = observation_query(&span, &test_id);
         span.end();
     }
 
     // Shutdown provider to flush spans
-    drop(provider);
+    provider.shutdown()?;
 
     // Verify trace in Langfuse
-    let found = verify_trace_in_langfuse(&test_id).await?;
-    assert!(
-        found,
-        "Trace with test_id '{}' not found in Langfuse",
-        test_id
-    );
+    verify_trace_in_langfuse(&query).await?;
 
     Ok(())
 }
@@ -180,7 +129,10 @@ async fn test_batch_span_processor() -> Result<(), Box<dyn std::error::Error>> {
     // Create exporter with BatchSpanProcessor (async runtime version)
     // This uses the experimental span_processor_with_async_runtime module
     // which properly integrates with Tokio runtime
-    let exporter = ExporterBuilder::from_env()?.build()?;
+    let exporter = ExporterBuilder::from_env()?
+        // Required for real-time visibility in the Cloud/v4 Observations API v2.
+        .with_header("x-langfuse-ingestion-version", "4")
+        .build()?;
     let provider = SdkTracerProvider::builder()
         .with_resource(
             Resource::builder()
@@ -197,6 +149,7 @@ async fn test_batch_span_processor() -> Result<(), Box<dyn std::error::Error>> {
 
     // Use provider directly instead of global (to avoid conflicts between tests)
     let tracer = provider.tracer("integration-test");
+    let query;
     {
         let mut span = tracer
             .span_builder(test_id.clone())
@@ -209,19 +162,15 @@ async fn test_batch_span_processor() -> Result<(), Box<dyn std::error::Error>> {
 
         sleep(Duration::from_millis(50)).await;
         span.set_attribute(KeyValue::new("test.status", "completed"));
+        query = observation_query(&span, &test_id);
         span.end();
     }
 
     // Shutdown provider to flush spans
-    let _ = provider.shutdown();
+    provider.shutdown()?;
 
     // Verify trace in Langfuse
-    let found = verify_trace_in_langfuse(&test_id).await?;
-    assert!(
-        found,
-        "Trace with test_id '{}' not found in Langfuse",
-        test_id
-    );
+    verify_trace_in_langfuse(&query).await?;
 
     Ok(())
 }
