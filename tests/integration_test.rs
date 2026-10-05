@@ -91,7 +91,7 @@ async fn verify_trace_in_langfuse(test_id: &str) -> Result<bool, Box<dyn std::er
 
         for trace in &traces.data {
             // Check if trace name contains our test_id
-            if let Some(Some(name)) = &trace.name {
+            if let Some(name) = &trace.name {
                 if name.contains(test_id) {
                     println!("  ✓ Found matching trace: {} (attempt {})", name, attempt);
                     return Ok(true);
