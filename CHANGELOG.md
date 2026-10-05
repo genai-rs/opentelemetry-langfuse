@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.6.1...v0.7.0) - 2026-10-05
+
+### Added
+
+- [**breaking**] upgrade Langfuse and OpenTelemetry dependencies
+
+### Fixed
+
+- preserve default OTLP HTTP request timeout
+- restore release workflow GitHub App authentication
+
+### Other
+
+- verify exported spans through Langfuse observations v2
+- rename deprecated app-id to client-id in create-github-app-token
+- automerge core dependency updates
+- bump MSRV to 1.88
+- *(deps)* Update rust patch updates
+- *(deps)* Update rust patch updates
+
 ## [0.6.1](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.6.0...v0.6.1) - 2025-12-23
 
 ### Other
