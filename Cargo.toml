@@ -27,26 +27,26 @@ bare_urls = "warn"
 unescaped_backticks = "warn"
 
 [dependencies]
-opentelemetry = { version = "^0.33.0", features = ["trace"] }
-opentelemetry_sdk = { version = "^0.33.0", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
-opentelemetry-otlp = { version = "^0.33.0", features = ["http-proto", "reqwest-client", "reqwest-rustls"] }
+opentelemetry = { version = "^0.33.1", features = ["trace"] }
+opentelemetry_sdk = { version = "^0.33.1", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
+opentelemetry-otlp = { version = "^0.33.1", features = ["http-proto", "reqwest-client", "reqwest-rustls"] }
 base64 = "^0.23.1"
 thiserror = "^2.0.21"
 # We expose reqwest::Client in our public API (with_http_client method)
 # HTTP comes from reqwest-client; HTTPS comes from reqwest-rustls.
 reqwest = { version = "^0.13.5", default-features = false }
-serde_json = "^1.0.151"
+serde_json = "^1.0.154"
 
 
 [dev-dependencies]
 tokio = { version = "^1.53.2", features = ["rt-multi-thread", "macros", "time"] }
-opentelemetry_sdk = { version = "^0.33.0", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
+opentelemetry_sdk = { version = "^0.33.1", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
 tracing = "^0.1.44"
 chrono = "^0.4.45"
 serial_test = "^4.0.1"
 langfuse-ergonomic = "^0.7.0"
 mockito = { version = "^1.7.2", default-features = false }
-serde_json = "^1.0.151"
+serde_json = "^1.0.154"
 
 [features]
 default = []
