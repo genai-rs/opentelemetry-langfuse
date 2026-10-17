@@ -106,16 +106,23 @@ impl ExporterBuilder {
 
     /// Adds an additional HTTP header.
     ///
+    /// Header names are case-insensitive; the last value supplied for a name wins.
+    /// Authentication set with [`Self::with_auth_header`] or [`Self::with_basic_auth`]
+    /// takes precedence over an additional Authorization header, regardless of call order.
+    ///
     /// # Arguments
     ///
     /// * `name` - The header name
     /// * `value` - The header value
     pub fn with_header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
-        self.additional_headers.insert(name.into(), value.into());
+        self.additional_headers
+            .insert(name.into().to_ascii_lowercase(), value.into());
         self
     }
 
     /// Adds multiple HTTP headers.
+    ///
+    /// Uses the same precedence as [`Self::with_header`], in iterator order.
     ///
     /// # Arguments
     ///
@@ -126,8 +133,9 @@ impl ExporterBuilder {
         K: Into<String>,
         V: Into<String>,
     {
-        self.additional_headers
-            .extend(headers.into_iter().map(|(k, v)| (k.into(), v.into())));
+        for (name, value) in headers {
+            self = self.with_header(name, value);
+        }
         self
     }
 
@@ -178,60 +186,16 @@ impl ExporterBuilder {
             .endpoint
             .ok_or(Error::MissingConfiguration("endpoint"))?;
 
-        // Create headers map
-        let mut headers = HashMap::new();
+        // Header names are normalized at insertion, so each name has one value.
+        let mut headers = self.additional_headers;
 
-        // Add additional headers first (may include Authorization from OTEL env)
-        headers.extend(self.additional_headers);
-
-        // Handle Authorization header with proper precedence:
-        // 1. auth_header (from with_auth_header/with_basic_auth) takes precedence
-        // 2. Otherwise use authorization from additional_headers (normalized)
-        // 3. Error if neither is present
-
+        // Explicit authentication wins regardless of additional-header call order.
         if let Some(auth_header) = self.auth_header {
-            // Remove any existing authorization headers (case-insensitive)
-            // since auth_header takes precedence
-            let auth_keys: Vec<String> = headers
-                .keys()
-                .filter(|k| k.eq_ignore_ascii_case("authorization"))
-                .cloned()
-                .collect();
-
-            for key in auth_keys {
-                headers.remove(&key);
-            }
-
-            // Insert the auth_header with normalized key
-            headers.insert("Authorization".to_string(), auth_header);
-        } else {
-            // No explicit auth_header, check if we have one in additional_headers
-            let has_auth = headers
-                .keys()
-                .any(|k| k.eq_ignore_ascii_case("authorization"));
-
-            if has_auth {
-                // Find and normalize the Authorization header key
-                let auth_keys: Vec<String> = headers
-                    .keys()
-                    .filter(|k| k.eq_ignore_ascii_case("authorization"))
-                    .cloned()
-                    .collect();
-
-                // If we have authorization with non-standard casing, normalize it
-                for key in auth_keys {
-                    if key != "Authorization" {
-                        if let Some(value) = headers.remove(&key) {
-                            headers.insert("Authorization".to_string(), value);
-                        }
-                    }
-                }
-            } else {
-                // No Authorization header found anywhere
-                return Err(Error::MissingConfiguration(
-                    "Authorization header or Langfuse credentials",
-                ));
-            }
+            headers.insert("authorization".to_string(), auth_header);
+        } else if !headers.contains_key("authorization") {
+            return Err(Error::MissingConfiguration(
+                "Authorization header or Langfuse credentials",
+            ));
         }
 
         let mut http_config = SpanExporter::builder()
@@ -333,7 +297,7 @@ mod tests {
     #[test]
     fn test_case_insensitive_authorization_header() {
         // Test that authorization header is handled case-insensitively
-        // and normalized to "Authorization"
+        // and normalized to "authorization"
 
         // Test with lowercase "authorization"
         let result = ExporterBuilder::new()
