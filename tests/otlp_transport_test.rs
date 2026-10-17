@@ -89,3 +89,118 @@ async fn export_span_with_default_and_custom_reqwest_clients(
     provider.shutdown()?;
     Ok(())
 }
+
+#[tokio::test]
+async fn authorization_casing_emits_one_value_with_defined_precedence(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let cases = [
+        (
+            "single-header-last-wins",
+            ExporterBuilder::new()
+                .with_header("AUTHORIZATION", "Bearer first")
+                .with_header("Authorization", "Bearer last"),
+            "Bearer last",
+        ),
+        (
+            "iterator-last-wins",
+            ExporterBuilder::new().with_headers([
+                ("AUTHORIZATION", "Bearer first"),
+                ("Authorization", "Bearer last"),
+            ]),
+            "Bearer last",
+        ),
+        (
+            "iterator-after-single-header",
+            ExporterBuilder::new()
+                .with_header("Authorization", "Bearer first")
+                .with_headers([("aUtHoRiZaTiOn", "Bearer last")]),
+            "Bearer last",
+        ),
+        (
+            "single-header-after-iterator",
+            ExporterBuilder::new()
+                .with_headers([("aUtHoRiZaTiOn", "Bearer first")])
+                .with_header("Authorization", "Bearer last"),
+            "Bearer last",
+        ),
+        (
+            "identical-duplicates",
+            ExporterBuilder::new()
+                .with_header("Authorization", "Bearer same")
+                .with_headers([
+                    ("authorization", "Bearer same"),
+                    ("AUTHORIZATION", "Bearer same"),
+                ]),
+            "Bearer same",
+        ),
+        (
+            "explicit-auth-before-headers",
+            ExporterBuilder::new()
+                .with_auth_header("Bearer explicit")
+                .with_headers([
+                    ("AUTHORIZATION", "Bearer first"),
+                    ("Authorization", "Bearer last"),
+                ]),
+            "Bearer explicit",
+        ),
+        (
+            "explicit-auth-after-headers",
+            ExporterBuilder::new()
+                .with_headers([
+                    ("AUTHORIZATION", "Bearer first"),
+                    ("Authorization", "Bearer last"),
+                ])
+                .with_auth_header("Bearer explicit"),
+            "Bearer explicit",
+        ),
+        (
+            "basic-auth-before-headers",
+            ExporterBuilder::new()
+                .with_basic_auth("user", "pass")
+                .with_headers([
+                    ("AUTHORIZATION", "Bearer first"),
+                    ("Authorization", "Bearer last"),
+                ]),
+            "Basic dXNlcjpwYXNz",
+        ),
+        (
+            "basic-auth-after-headers",
+            ExporterBuilder::new()
+                .with_headers([
+                    ("AUTHORIZATION", "Bearer first"),
+                    ("Authorization", "Bearer last"),
+                ])
+                .with_basic_auth("user", "pass"),
+            "Basic dXNlcjpwYXNz",
+        ),
+    ];
+    let provider = SdkTracerProvider::builder().build();
+    let tracer = provider.tracer("authorization-precedence-test");
+    for (name, builder, expected) in cases {
+        let mut server = mockito::Server::new_async().await;
+        let request = server
+            .mock("POST", "/api/public/otel/v1/traces")
+            .match_header("authorization", expected)
+            .match_request(|request| request.header("authorization").len() == 1)
+            .with_status(200)
+            .with_header("content-type", "application/x-protobuf")
+            .with_body([])
+            .expect(1)
+            .create_async()
+            .await;
+        let exporter = builder
+            .with_host(&server.url())
+            .with_timeout(Duration::from_secs(5))
+            .build()?;
+        let mut span = tracer.start(name);
+        let mut data = span.exported_data().expect("span must be sampled");
+        data.end_time = SystemTime::now();
+        span.end();
+        let result =
+            tokio::time::timeout(Duration::from_secs(10), exporter.export(vec![data])).await?;
+        assert!(result.is_ok(), "{name}: {result:?}");
+        request.assert_async().await;
+    }
+    provider.shutdown()?;
+    Ok(())
+}
