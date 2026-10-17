@@ -1,0 +1,36 @@
+name: External consumer
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_BUILD_JOBS: 2
+
+jobs:
+  consumer:
+    name: External consumer (Rust 1.93.1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.93.1"
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: examples/external-consumer
+      - name: Check fixture formatting
+        run: cargo fmt --manifest-path examples/external-consumer/Cargo.toml -- --check
+      - name: Compile the independent consumer at MSRV
+        run: cargo check --manifest-path examples/external-consumer/Cargo.toml
+      - name: Export to a local fake endpoint and shut down
+        run: cargo run --manifest-path examples/external-consumer/Cargo.toml
+      - name: Inspect SDK dependency versions
+        run: cargo tree --manifest-path examples/external-consumer/Cargo.toml -i opentelemetry_sdk

@@ -1,0 +1,21 @@
+[package]
+name = "langfuse-external-consumer"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.93.1"
+publish = false
+
+# Keep this consumer independent of the library's dev-dependencies/features.
+[workspace]
+
+[dependencies]
+opentelemetry-langfuse = { version = "0.7.0", path = "../.." }
+opentelemetry = { version = "0.33.1", features = ["trace"] }
+opentelemetry_sdk = { version = "0.33.1", features = [
+    "trace",
+    "rt-tokio",
+    "experimental_trace_batch_span_processor_with_async_runtime",
+] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+# Only the fixture needs a fake endpoint; applications do not need mockito.
+mockito = { version = "1.7.2", default-features = false }

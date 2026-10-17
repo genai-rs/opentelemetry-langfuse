@@ -15,14 +15,38 @@ This crate provides OpenTelemetry components and utilities for integrating with 
 
 ```toml
 [dependencies]
-opentelemetry-langfuse = "*"
-opentelemetry_sdk = { version = "0.33", features = [
+opentelemetry-langfuse = "0.7.0"
+opentelemetry = { version = "0.33.1", features = ["trace"] }
+opentelemetry_sdk = { version = "0.33.1", features = [
     "trace",
     "rt-tokio",
     "experimental_trace_batch_span_processor_with_async_runtime"
 ]}
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ```
+
+This combination requires **Rust 1.93.1 or later**. `ExporterBuilder::build()`
+returns `opentelemetry_otlp::SpanExporter` from the 0.33 series, implementing
+`opentelemetry_sdk::trace::SpanExporter` from the 0.33 series. Use matching
+0.33 `opentelemetry` and `opentelemetry_sdk` dependencies when constructing a
+provider or creating spans for this exporter.
+
+### Using alongside openai-ergonomic
+
+`openai-ergonomic` 0.6.0 uses OpenTelemetry 0.32 and declares Rust 1.88. It can
+coexist in an application with this crate, but that application must meet this
+crate's Rust 1.93.1 minimum. Cargo may then resolve both 0.32 and 0.33 SDKs.
+Their exporter traits, providers, tracers, contexts, and spans are distinct Rust
+types: do not pass this 0.33 exporter to a 0.32 provider, or pass a 0.33 provider
+to an API that expects a 0.32 provider. Each OpenTelemetry version also has its
+own global provider; setting the 0.33 global provider does not configure 0.32
+instrumentation.
+
+Use separate tracing pipelines with each library's matching SDK, or explicitly
+align dependencies in a separately reviewed integration. This crate does not
+bridge the two versions or require an openai-ergonomic upgrade. The
+`LangfuseContext` helper example linked below illustrates attribute conventions;
+it does not imply cross-version provider compatibility.
 
 ### Migrating from the 0.6 dependency stack
 
@@ -81,7 +105,23 @@ This uses `BatchSpanProcessor` with the async runtime for efficient batched expo
 
 ## Examples
 
-The [`examples/`](examples) directory contains ready-to-run scenarios that map to common deployment patterns:
+The [external consumer fixture](examples/external-consumer) has its own manifest
+and builds this crate as a path dependency, without the library's dev-dependencies.
+CI compiles and runs it on Rust 1.93.1. It starts a local fake OTLP endpoint,
+exports one span, verifies receipt, and explicitly shuts down the provider and
+runtime. No Langfuse service or credentials are needed:
+
+```bash
+cargo +1.93.1 check --manifest-path examples/external-consumer/Cargo.toml
+cargo +1.93.1 run --manifest-path examples/external-consumer/Cargo.toml
+cargo +1.93.1 tree --manifest-path examples/external-consumer/Cargo.toml -i opentelemetry_sdk
+```
+
+The fixture should resolve one 0.33 SDK. In an application using both libraries,
+inspect `cargo tree -d` and `cargo tree -i opentelemetry_sdk@0.33.1` (adjust the
+patch version to the resolved version) to see which dependency uses each SDK.
+
+The remaining [`examples/`](examples) use a Langfuse service and credentials:
 
 - [`sync_simple`](examples/sync_simple.rs) – minimal setup for development and quick demos
 - [`sync_batch`](examples/sync_batch.rs) – synchronous app that spins up a lightweight async runtime for batching
