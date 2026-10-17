@@ -295,6 +295,20 @@ mod tests {
     }
 
     #[test]
+    fn test_build_requires_authorization_header() {
+        let result = ExporterBuilder::new()
+            .with_endpoint("https://test.com")
+            .build();
+
+        assert!(matches!(
+            result,
+            Err(Error::MissingConfiguration(
+                "Authorization header or Langfuse credentials"
+            ))
+        ));
+    }
+
+    #[test]
     fn test_case_insensitive_authorization_header() {
         // Test that authorization header is handled case-insensitively
         // and normalized to "authorization"
