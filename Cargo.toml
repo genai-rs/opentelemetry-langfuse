@@ -39,7 +39,7 @@ serde_json = "^1.0.154"
 
 
 [dev-dependencies]
-tokio = { version = "^1.53.2", features = ["rt-multi-thread", "macros", "time"] }
+tokio = { version = "^1.53.3", features = ["rt-multi-thread", "macros", "time"] }
 opentelemetry_sdk = { version = "^0.33.1", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
 tracing = "^0.1.44"
 chrono = "^0.4.45"
