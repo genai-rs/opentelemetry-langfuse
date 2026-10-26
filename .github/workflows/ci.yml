@@ -74,18 +74,18 @@ jobs:
         
       - name: Run tests
         run: cargo test --verbose --all-features
-        env:
-          LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
-          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
-          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
         
       - name: Run tests (no default features)
         run: cargo test --verbose --no-default-features
+        
+      - name: Run live integration tests
+        if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+        run: cargo test --verbose --all-features -- --ignored
         env:
           LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
-        
+
       - name: Build examples
         run: cargo build --examples --all-features
 

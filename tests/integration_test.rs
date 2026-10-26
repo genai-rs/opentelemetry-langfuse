@@ -71,6 +71,7 @@ fn observation_query(span: &impl Span, name: &str) -> support::ObservationQuery 
 
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
+#[ignore = "requires LANGFUSE_PUBLIC_KEY/LANGFUSE_SECRET_KEY"]
 async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> {
     let test_id = generate_test_id("simple");
 
@@ -123,6 +124,7 @@ async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> 
 
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
+#[ignore = "requires LANGFUSE_PUBLIC_KEY/LANGFUSE_SECRET_KEY"]
 async fn test_batch_span_processor() -> Result<(), Box<dyn std::error::Error>> {
     let test_id = generate_test_id("batch");
 
