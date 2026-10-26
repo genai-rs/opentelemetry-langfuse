@@ -244,7 +244,7 @@ cargo test --lib --test otlp_transport_test --test langfuse_query_test
 cargo test --doc
 ```
 
-The integration tests in [`tests/integration_test.rs`](tests/integration_test.rs) verify that traces are successfully exported to Langfuse and can be queried via the Langfuse API. The tests cover:
+The integration tests in [`tests/integration_test.rs`](tests/integration_test.rs) are marked `#[ignore]` because they need live Langfuse credentials (`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`); run them with `cargo test --all-features -- --ignored`. They verify that traces are successfully exported to Langfuse and can be queried via the Langfuse API. The tests cover:
 
 - **SimpleSpanProcessor**: Immediate (blocking) export
 - **BatchSpanProcessor (async runtime)**: Batched export with Tokio integration
