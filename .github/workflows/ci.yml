@@ -86,6 +86,20 @@ jobs:
       - name: Build examples
         run: cargo build --examples --all-features
 
+  semver:
+    name: semver-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check semver compatibility
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
