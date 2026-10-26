@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.7.0...v0.7.1) - 2026-10-26
+
+### Added
+
+- make tokio runtime support an optional rt-tokio feature
+
+### Fixed
+
+- normalize exporter header names on insertion
+
+### Other
+
+- add cargo-semver-checks job
+- remove no-op CI step and stray analysis file
+- gate live Langfuse integration tests behind --ignored
+- *(deps)* Update dependency rust to v1.99.1
+- *(deps)* Update Rust crate tokio to ^1.53.3
+- cover missing exporter authorization
+- compile documented OpenTelemetry consumer at MSRV
+- *(deps)* Update rust patch updates
+- *(deps)* Update github-actions
+
 ## [0.7.0](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.6.1...v0.7.0) - 2026-10-05
 
 ### Added
