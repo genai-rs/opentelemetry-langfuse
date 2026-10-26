@@ -21,10 +21,12 @@ use langfuse_ergonomic::client::ClientBuilder;
 use opentelemetry::trace::{Span, SpanKind, Tracer, TracerProvider};
 use opentelemetry::KeyValue;
 use opentelemetry_langfuse::ExporterBuilder;
-use opentelemetry_sdk::trace::{
-    span_processor_with_async_runtime::BatchSpanProcessor, SdkTracerProvider, SimpleSpanProcessor,
-};
-use opentelemetry_sdk::{runtime::Tokio, Resource};
+#[cfg(feature = "rt-tokio")]
+use opentelemetry_sdk::runtime::Tokio;
+#[cfg(feature = "rt-tokio")]
+use opentelemetry_sdk::trace::span_processor_with_async_runtime::BatchSpanProcessor;
+use opentelemetry_sdk::trace::{SdkTracerProvider, SimpleSpanProcessor};
+use opentelemetry_sdk::Resource;
 use serial_test::serial;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -122,6 +124,7 @@ async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
+#[cfg(feature = "rt-tokio")]
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 #[ignore = "requires LANGFUSE_PUBLIC_KEY/LANGFUSE_SECRET_KEY"]

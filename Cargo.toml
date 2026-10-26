@@ -28,7 +28,7 @@ unescaped_backticks = "warn"
 
 [dependencies]
 opentelemetry = { version = "^0.33.1", features = ["trace"] }
-opentelemetry_sdk = { version = "^0.33.1", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
+opentelemetry_sdk = { version = "^0.33.1", features = ["trace"] }
 opentelemetry-otlp = { version = "^0.33.1", features = ["http-proto", "reqwest-client", "reqwest-rustls"] }
 base64 = "^0.23.1"
 thiserror = "^2.0.21"
@@ -40,7 +40,6 @@ serde_json = "^1.0.154"
 
 [dev-dependencies]
 tokio = { version = "^1.53.3", features = ["rt-multi-thread", "macros", "time"] }
-opentelemetry_sdk = { version = "^0.33.1", features = ["trace", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime"] }
 tracing = "^0.1.44"
 chrono = "^0.4.45"
 serial_test = "^4.0.1"
@@ -49,4 +48,17 @@ mockito = { version = "^1.7.2", default-features = false }
 serde_json = "^1.0.154"
 
 [features]
-default = []
+default = ["rt-tokio"]
+# Tokio-backed async-runtime span processors (`BatchSpanProcessor` with `runtime::Tokio`).
+rt-tokio = [
+    "opentelemetry_sdk/rt-tokio",
+    "opentelemetry_sdk/experimental_trace_batch_span_processor_with_async_runtime",
+]
+
+[[example]]
+name = "async_batch"
+required-features = ["rt-tokio"]
+
+[[example]]
+name = "sync_batch"
+required-features = ["rt-tokio"]
