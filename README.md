@@ -25,6 +25,12 @@ opentelemetry_sdk = { version = "0.33.1", features = [
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 ```
 
+### Cargo features
+
+- `rt-tokio` (default): enables `opentelemetry_sdk`'s `rt-tokio` and async-runtime
+  `BatchSpanProcessor` support. Use `default-features = false` if you bring your
+  own span processor and do not want the Tokio runtime pulled in.
+
 This combination requires **Rust 1.93.1 or later**. `ExporterBuilder::build()`
 returns `opentelemetry_otlp::SpanExporter` from the 0.33 series, implementing
 `opentelemetry_sdk::trace::SpanExporter` from the 0.33 series. Use matching

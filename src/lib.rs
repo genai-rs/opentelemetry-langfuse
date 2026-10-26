@@ -10,14 +10,19 @@
 //!
 //! ```no_run
 //! use opentelemetry_langfuse::ExporterBuilder;
+//! # #[cfg(feature = "rt-tokio")]
 //! use opentelemetry_sdk::trace::{
 //!     span_processor_with_async_runtime::BatchSpanProcessor,
 //!     SdkTracerProvider,
 //! };
+//! # #[cfg(feature = "rt-tokio")]
 //! use opentelemetry_sdk::{runtime::Tokio, Resource};
+//! # #[cfg(feature = "rt-tokio")]
 //! use opentelemetry::KeyValue;
+//! # #[cfg(feature = "rt-tokio")]
 //! use opentelemetry::global;
 //!
+//! # #[cfg(feature = "rt-tokio")]
 //! # fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // Create the Langfuse exporter from environment variables
 //! // Requires: LANGFUSE_HOST, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY
@@ -42,6 +47,10 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! The example above needs the `rt-tokio` feature (enabled by default), which
+//! turns on the Tokio-backed `BatchSpanProcessor` in `opentelemetry_sdk`. Disable
+//! default features if you bring your own span processor and runtime.
 //!
 //! # Components
 //!
