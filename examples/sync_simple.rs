@@ -17,6 +17,7 @@
 //!
 //! cargo run --example sync_simple
 //! ```
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

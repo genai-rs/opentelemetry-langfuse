@@ -88,7 +88,10 @@ impl LangfuseContext {
     /// Add a single tag.
     pub fn add_tag(&self, tag: impl Into<String>) -> &Self {
         let tag = tag.into();
-        let mut attrs = self.attributes.write().unwrap();
+        let mut attrs = self
+            .attributes
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
 
         // Append to existing tags if present
         if let Some(existing) = attrs.get(attributes::TRACE_TAGS) {
@@ -118,7 +121,10 @@ impl LangfuseContext {
 
     /// Set a custom attribute.
     pub fn set_attribute(&self, key: impl Into<String>, value: impl Into<String>) -> &Self {
-        let mut attrs = self.attributes.write().unwrap();
+        let mut attrs = self
+            .attributes
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         attrs.insert(key.into(), value.into());
         self
     }
@@ -131,14 +137,20 @@ impl LangfuseContext {
 
     /// Clear all attributes.
     pub fn clear(&self) {
-        let mut attrs = self.attributes.write().unwrap();
+        let mut attrs = self
+            .attributes
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         attrs.clear();
     }
 
     /// Get all current attributes as key-value pairs.
     #[must_use]
     pub fn get_attributes(&self) -> Vec<KeyValue> {
-        let attrs = self.attributes.read().unwrap();
+        let attrs = self
+            .attributes
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         attrs
             .iter()
             .map(|(k, v)| KeyValue::new(k.clone(), v.clone()))
@@ -148,14 +160,20 @@ impl LangfuseContext {
     /// Check if a specific attribute is set.
     #[must_use]
     pub fn has_attribute(&self, key: &str) -> bool {
-        let attrs = self.attributes.read().unwrap();
+        let attrs = self
+            .attributes
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         attrs.contains_key(key)
     }
 
     /// Get a specific attribute value.
     #[must_use]
     pub fn get_attribute(&self, key: &str) -> Option<String> {
-        let attrs = self.attributes.read().unwrap();
+        let attrs = self
+            .attributes
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         attrs.get(key).cloned()
     }
 }
@@ -168,6 +186,7 @@ impl Default for LangfuseContext {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
     use super::*;
 
     #[test]
