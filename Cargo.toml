@@ -26,6 +26,10 @@ invalid_rust_codeblocks = "warn"
 bare_urls = "warn"
 unescaped_backticks = "warn"
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [dependencies]
 opentelemetry = { version = "^0.33.1", features = ["trace"] }
 opentelemetry_sdk = { version = "^0.33.1", features = ["trace"] }
