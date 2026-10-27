@@ -13,6 +13,7 @@
 //!
 //! cargo test --test integration_test
 //! ```
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod support;
 

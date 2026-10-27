@@ -1,3 +1,5 @@
+//! Integration tests for querying traces back from Langfuse.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod support;
 
 use langfuse_ergonomic::ClientBuilder;

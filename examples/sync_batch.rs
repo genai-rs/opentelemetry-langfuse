@@ -14,6 +14,7 @@
 //!
 //! cargo run --example sync_batch
 //! ```
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use opentelemetry::global;

@@ -70,6 +70,7 @@ pub fn build_auth_header_from_env() -> Result<String, crate::Error> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
     use super::*;
     use serial_test::serial;
 

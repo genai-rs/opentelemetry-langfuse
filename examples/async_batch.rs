@@ -16,6 +16,7 @@
 //!
 //! cargo run --example async_batch
 //! ```
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

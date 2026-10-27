@@ -261,6 +261,7 @@ pub fn exporter(host: &str, public_key: &str, secret_key: &str) -> Result<SpanEx
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
     use super::*;
     use serial_test::serial;
     use std::env;

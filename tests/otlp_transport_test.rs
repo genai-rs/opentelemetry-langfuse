@@ -1,4 +1,5 @@
 //! Exercise the OTLP/HTTP transport without requiring a Langfuse account.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use opentelemetry::trace::{Span, Tracer, TracerProvider};
 use opentelemetry_langfuse::{build_auth_header, ExporterBuilder};
