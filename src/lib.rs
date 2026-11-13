@@ -90,3 +90,16 @@ pub use context::LangfuseContext;
 pub use endpoint::{build_otlp_endpoint, build_otlp_endpoint_from_env};
 pub use error::{Error, Result};
 pub use exporter::{exporter, ExporterBuilder};
+
+// Compile the code examples of the README and the docs/ pages as doctests.
+#[cfg(all(doctest, feature = "rt-tokio"))]
+mod doc_pages {
+    #[doc = include_str!("../README.md")]
+    struct Readme;
+    #[doc = include_str!("../docs/getting-started.md")]
+    struct GettingStarted;
+    #[doc = include_str!("../docs/configuration.md")]
+    struct Configuration;
+    #[doc = include_str!("../docs/context.md")]
+    struct Context;
+}

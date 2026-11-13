@@ -74,7 +74,7 @@ cargo run --example async_batch
 1. **Create a feature branch** from `main`
 2. **Make your changes** following the project's coding standards
 3. **Add tests** for new functionality
-4. **Update documentation** (README.md, rustdoc comments) as needed
+4. **Update documentation** (README.md, the pages under `docs/`, rustdoc comments) as needed
 5. **Run all checks** (format, clippy, tests, doc build)
 6. **Create a pull request** with a clear description of your changes
 7. **Wait for CI** to pass and address any review feedback
