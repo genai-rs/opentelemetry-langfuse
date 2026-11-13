@@ -19,9 +19,22 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+      # The toolchain is the crate's MSRV, read from Cargo.toml so that dependency bots cannot move it.
+      # The job name is a required status check, so it names the MSRV literally; this step fails when
+      # the two drift apart (then update the name here and in the branch protection).
+      - name: MSRV from Cargo.toml
+        id: msrv
+        run: |
+          msrv=$(sed -n 's/^rust-version *= *"\(.*\)"/\1/p' Cargo.toml | head -n 1)
+          test -n "$msrv"
+          echo "version=$msrv" >> "$GITHUB_OUTPUT"
+          if [ "Rust $msrv" != "Rust 1.93.1" ]; then
+            echo "::error::rust-version is $msrv but the job is named for 1.93.1; rename the job and the required check"
+            exit 1
+          fi
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.99.1"
+          toolchain: ${{ steps.msrv.outputs.version }}
           components: rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
