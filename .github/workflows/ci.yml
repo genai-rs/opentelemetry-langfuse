@@ -6,48 +6,78 @@ on:
   pull_request:
 
 jobs:
+  # Decides whether heavy jobs run (genai-rs/.github local-ci-gate.yml).
+  gate:
+    uses: genai-rs/.github/.github/workflows/local-ci-gate.yml@ci/local-ci-gate
+
   ci:
-    uses: genai-rs/.github/.github/workflows/rust-ci.yml@main
+    uses: genai-rs/.github/.github/workflows/rust-ci.yml@ci/local-ci-gate
     with:
       msrv: "1.93.1"
     secrets: inherit
 
   no-default-features:
     name: Test (no default features)
+    needs: gate
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
+    env:
+      RUN: ${{ needs.gate.outputs.heavy != 'false' }}
     timeout-minutes: 20
     steps:
+      - name: Skip (${{ needs.gate.outputs.mode }})
+        if: env.RUN != 'true'
+        env:
+          REASON: ${{ needs.gate.outputs.reason }}
+        run: echo "Skipped - $REASON"
       - name: Checkout repository
+        if: env.RUN == 'true'
         uses: actions/checkout@v7
 
       - name: Install Rust
+        if: env.RUN == 'true'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache dependencies
+        if: env.RUN == 'true'
         uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: true
 
       - name: Run tests (no default features)
+        if: env.RUN == 'true'
         run: cargo test --verbose --no-default-features
 
   live-integration:
     name: Live Integration Tests
+    needs: gate
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
+    env:
+      RUN: ${{ needs.gate.outputs.mode != 'release' }}
     timeout-minutes: 30
     steps:
+      - name: Skip (${{ needs.gate.outputs.mode }})
+        if: env.RUN != 'true'
+        env:
+          REASON: ${{ needs.gate.outputs.reason }}
+        run: echo "Skipped - $REASON"
       - name: Checkout repository
+        if: env.RUN == 'true'
         uses: actions/checkout@v7
 
       - name: Install Rust
+        if: env.RUN == 'true'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache dependencies
+        if: env.RUN == 'true'
         uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: true
 
       - name: Run live integration tests
+        if: env.RUN == 'true'
         run: cargo test --verbose --all-features -- --ignored
         env:
           LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
