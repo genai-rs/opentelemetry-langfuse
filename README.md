@@ -1,11 +1,12 @@
 # opentelemetry-langfuse
 
-[![Crates.io](https://img.shields.io/crates/v/opentelemetry-langfuse.svg)](https://crates.io/crates/opentelemetry-langfuse)
-[![Documentation](https://docs.rs/opentelemetry-langfuse/badge.svg)](https://docs.rs/opentelemetry-langfuse)
-[![CI](https://github.com/genai-rs/opentelemetry-langfuse/workflows/CI/badge.svg)](https://github.com/genai-rs/opentelemetry-langfuse/actions)
+[![Crates.io](https://img.shields.io/crates/v/opentelemetry-langfuse)](https://crates.io/crates/opentelemetry-langfuse)
+[![docs.rs](https://img.shields.io/docsrs/opentelemetry-langfuse)](https://docs.rs/opentelemetry-langfuse)
+[![MSRV](https://img.shields.io/crates/msrv/opentelemetry-langfuse)](Cargo.toml)
+[![Dependency status](https://deps.rs/crate/opentelemetry-langfuse/latest/status.svg)](https://deps.rs/crate/opentelemetry-langfuse)
+[![CI](https://github.com/genai-rs/opentelemetry-langfuse/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/genai-rs/opentelemetry-langfuse/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/genai-rs/opentelemetry-langfuse/branch/main/graph/badge.svg)](https://codecov.io/gh/genai-rs/opentelemetry-langfuse)
-[![MSRV](https://img.shields.io/badge/MSRV-1.93.1-blue)](https://www.rust-lang.org/tools/install)
-[![License](https://img.shields.io/crates/l/opentelemetry-langfuse)](./LICENSE-MIT)
+[![License](https://img.shields.io/crates/l/opentelemetry-langfuse)](#license)
 
 OpenTelemetry integration for [Langfuse](https://langfuse.com), the open-source LLM observability platform.
 
@@ -13,17 +14,24 @@ This crate provides OpenTelemetry components and utilities for integrating with 
 
 ## Installation
 
-```toml
-[dependencies]
-opentelemetry-langfuse = "0.7.0"
-opentelemetry = { version = "0.33.1", features = ["trace"] }
-opentelemetry_sdk = { version = "0.33.1", features = [
-    "trace",
-    "rt-tokio",
-    "experimental_trace_batch_span_processor_with_async_runtime"
-]}
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+```bash
+cargo add opentelemetry-langfuse
+cargo add opentelemetry --features trace
+cargo add opentelemetry_sdk --features trace,rt-tokio,experimental_trace_batch_span_processor_with_async_runtime
+cargo add tokio --features rt-multi-thread,macros
 ```
+
+Or add `opentelemetry-langfuse = "0.x"` to `Cargo.toml` by hand, using the
+version shown on the crates.io badge above.
+
+**OpenTelemetry versions must match.** This crate is built against the
+OpenTelemetry **0.33** family (`opentelemetry`, `opentelemetry_sdk`,
+`opentelemetry-otlp`). Your own `opentelemetry` and `opentelemetry_sdk`
+dependencies must come from that same minor release line; types from different
+OpenTelemetry minors are not interchangeable. See this crate's
+[`Cargo.toml`](Cargo.toml) for the exact requirements, and expect the required
+family to move forward in future releases (the [CHANGELOG](CHANGELOG.md) notes
+each bump).
 
 ### Cargo features
 
@@ -31,22 +39,25 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
   `BatchSpanProcessor` support. Use `default-features = false` if you bring your
   own span processor and do not want the Tokio runtime pulled in.
 
-This combination requires **Rust 1.93.1 or later**. `ExporterBuilder::build()`
-returns `opentelemetry_otlp::SpanExporter` from the 0.33 series, implementing
-`opentelemetry_sdk::trace::SpanExporter` from the 0.33 series. Use matching
-0.33 `opentelemetry` and `opentelemetry_sdk` dependencies when constructing a
-provider or creating spans for this exporter.
+The minimum supported Rust version is shown on the MSRV badge (the
+`rust-version` field in [`Cargo.toml`](Cargo.toml)). `ExporterBuilder::build()`
+returns an `opentelemetry_otlp::SpanExporter` implementing
+`opentelemetry_sdk::trace::SpanExporter` from the same OpenTelemetry family
+this crate depends on. Use matching `opentelemetry` and `opentelemetry_sdk`
+dependencies when constructing a provider or creating spans for this exporter.
 
-### Using alongside openai-ergonomic
+### Using alongside libraries on a different OpenTelemetry version
 
-`openai-ergonomic` 0.6.0 uses OpenTelemetry 0.32 and declares Rust 1.88. It can
-coexist in an application with this crate, but that application must meet this
-crate's Rust 1.93.1 minimum. Cargo may then resolve both 0.32 and 0.33 SDKs.
-Their exporter traits, providers, tracers, contexts, and spans are distinct Rust
-types: do not pass this 0.33 exporter to a 0.32 provider, or pass a 0.33 provider
-to an API that expects a 0.32 provider. Each OpenTelemetry version also has its
-own global provider; setting the 0.33 global provider does not configure 0.32
-instrumentation.
+Other libraries in your application (for example `openai-ergonomic`) may depend
+on a different OpenTelemetry minor than this crate. They can coexist, as long as
+the application meets this crate's MSRV, but Cargo will then resolve two
+OpenTelemetry SDKs. Their exporter traits, providers, tracers, contexts, and
+spans are distinct Rust types: do not pass this crate's exporter to a provider
+from the other version, or pass its provider to an API that expects the other
+version. Each OpenTelemetry version also has its own global provider; setting
+one version's global provider does not configure the other version's
+instrumentation. Use `cargo tree -i opentelemetry_sdk` to see which versions
+are resolved.
 
 Use separate tracing pipelines with each library's matching SDK, or explicitly
 align dependencies in a separately reviewed integration. This crate does not
@@ -63,9 +74,9 @@ not interchangeable. Update these dependencies together in your application.
 `Error::OpenTelemetry` wraps `opentelemetry_sdk::error::OTelSdkError`, replacing
 the removed `TraceError` type.
 
-The integration tests and examples use `langfuse-ergonomic` 0.7.0 with
-`langfuse-client-base` 0.15.0. In that API, a trace name is `Option<String>`
-rather than `Option<Option<String>>`. Langfuse remains a test/example dependency;
+As of that release, the integration tests and examples moved to
+`langfuse-ergonomic` 0.7.0 with `langfuse-client-base` 0.15.0. In that API, a
+trace name is `Option<String>` rather than `Option<Option<String>>`. Langfuse remains a test/example dependency;
 the exporter itself sends OTLP directly.
 
 ## Quick Start
@@ -113,19 +124,21 @@ This uses `BatchSpanProcessor` with the async runtime for efficient batched expo
 
 The [external consumer fixture](examples/external-consumer) has its own manifest
 and builds this crate as a path dependency, without the library's dev-dependencies.
-CI compiles and runs it on Rust 1.93.1. It starts a local fake OTLP endpoint,
+CI compiles and runs it on the MSRV. It starts a local fake OTLP endpoint,
 exports one span, verifies receipt, and explicitly shuts down the provider and
 runtime. No Langfuse service or credentials are needed:
 
 ```bash
-cargo +1.93.1 check --manifest-path examples/external-consumer/Cargo.toml
-cargo +1.93.1 run --manifest-path examples/external-consumer/Cargo.toml
-cargo +1.93.1 tree --manifest-path examples/external-consumer/Cargo.toml -i opentelemetry_sdk
+cargo check --manifest-path examples/external-consumer/Cargo.toml
+cargo run --manifest-path examples/external-consumer/Cargo.toml
+cargo tree --manifest-path examples/external-consumer/Cargo.toml -i opentelemetry_sdk
 ```
 
-The fixture should resolve one 0.33 SDK. In an application using both libraries,
-inspect `cargo tree -d` and `cargo tree -i opentelemetry_sdk@0.33.1` (adjust the
-patch version to the resolved version) to see which dependency uses each SDK.
+Prefix with `cargo +<msrv>` (see `rust-version` in [`Cargo.toml`](Cargo.toml))
+to reproduce the MSRV check. The fixture should resolve exactly one
+OpenTelemetry SDK. In an application that pulls in several OpenTelemetry
+versions, inspect `cargo tree -d` and `cargo tree -i opentelemetry_sdk@<version>`
+to see which dependency uses each SDK.
 
 The remaining [`examples/`](examples) use a Langfuse service and credentials:
 
@@ -206,7 +219,8 @@ let exporter = ExporterBuilder::new()
 **Note on TLS**: The `opentelemetry-otlp` crate's `reqwest-client` feature supplies
 the async HTTP transport, and `reqwest-rustls` explicitly enables HTTPS. This
 also applies when building the library without its test dependencies. Custom
-clients use reqwest 0.13 and can configure their own TLS backend.
+clients must come from the same `reqwest` minor release line this crate depends
+on (see [`Cargo.toml`](Cargo.toml)) and can configure their own TLS backend.
 
 The default HTTP client uses OTLP's resolved request timeout (10 seconds unless
 overridden by OTLP environment variables or `with_timeout`). Custom clients must
