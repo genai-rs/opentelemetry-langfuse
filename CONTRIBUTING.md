@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ### Prerequisites
 
-- Rust 1.93.1 or later (MSRV, including the test dependencies)
+- Rust at or above the MSRV (`rust-version` in `Cargo.toml`, including the test dependencies)
 - Cargo
 - A Langfuse account for integration testing (optional but recommended)
 
