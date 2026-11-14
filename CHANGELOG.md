@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.7.3...v0.7.4) - 2026-11-14
+
+### Other
+
+- correct the test commands in CONTRIBUTING
+- run the external consumer on the MSRV from Cargo.toml (Renovate had moved it to 1.99.1)
+- allow auto-merge (as in the other genai-rs repos)
+- turn the README into a landing page and move the details to docs/
+- use live badges and stop pinning versions in prose docs
+- use the reusable workflows from genai-rs/.github@main
+- gate heavy jobs on local-ci attestation
+
 ## [0.7.3](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.7.2...v0.7.3) - 2026-11-07
 
 ### Other
