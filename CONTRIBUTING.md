@@ -29,15 +29,20 @@ Thank you for your interest in contributing! This document provides guidelines f
 ### Running Tests
 
 ```bash
-# Run unit tests
-cargo test --lib
-
-# Run all tests (including integration tests - requires Langfuse credentials)
+# Unit, local transport/query and doc tests (no credentials needed)
 cargo test
+
+# Without the default `rt-tokio` feature
+cargo test --no-default-features
+
+# Live integration tests (marked #[ignore]; need Langfuse credentials)
+cargo test --all-features -- --ignored
 
 # Run specific test
 cargo test test_name
 ```
+
+See [development](docs/development.md) for the external consumer and local CI.
 
 ### Code Quality
 
@@ -75,7 +80,8 @@ cargo run --example async_batch
 2. **Make your changes** following the project's coding standards
 3. **Add tests** for new functionality
 4. **Update documentation** (README.md, the pages under `docs/`, rustdoc comments) as needed
-5. **Run all checks** (format, clippy, tests, doc build)
+5. **Run all checks** (format, clippy, tests, doc build), ideally with the shared
+   [local CI script](docs/development.md#ci-and-local-ci)
 6. **Create a pull request** with a clear description of your changes
 7. **Wait for CI** to pass and address any review feedback
 
@@ -84,7 +90,7 @@ cargo run --example async_batch
 - Write clear, descriptive commit messages
 - Keep PRs focused on a single feature or fix
 - Add tests for new functionality
-- Update CHANGELOG.md is managed by release-plz (no manual updates needed)
+- Do not edit CHANGELOG.md: release-plz maintains it
 - Ensure all CI checks pass
 - Follow the existing code style
 
@@ -94,7 +100,7 @@ cargo run --example async_batch
 
 - Follow the official [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
 - Use `cargo fmt` for formatting (configured in `rustfmt.toml`)
-- Address all `cargo clippy` warnings (configured in `.clippy.toml`)
+- Address all `cargo clippy` warnings (configured in `.clippy.toml` and the `[lints]` tables of `Cargo.toml`)
 - Write rustdoc comments for public APIs
 
 ### Testing
