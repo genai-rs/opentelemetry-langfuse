@@ -13,21 +13,42 @@ fn query() -> ObservationQuery {
         trace_id: "0123456789abcdef0123456789abcdef".into(),
         span_id: "0123456789abcdef".into(),
         name: "test-span".into(),
-        from_start_time: "2026-10-05T12:00:00+00:00".into(),
-        to_start_time: "2026-10-05T12:02:00+00:00".into(),
+        from_start_time: "2026-10-05T12:00:00Z".parse().unwrap(),
+        to_start_time: "2026-10-05T12:02:00Z".parse().unwrap(),
     }
 }
 
-fn matching_body() -> String {
+/// An observation as the Observations API v2 returns it, with the fields it always sends.
+fn observation(trace_id: &str, id: &str, name: &str) -> serde_json::Value {
     serde_json::json!({
-        "data": [{
-            "traceId": query().trace_id,
-            "id": query().span_id,
-            "name": query().name,
-        }],
-        "meta": {"cursor": null}
+        "id": id,
+        "traceId": trace_id,
+        "name": name,
+        "type": "SPAN",
+        "projectId": "project",
+        "startTime": "2026-10-05T12:01:00.000Z",
+        "endTime": null,
+        "parentObservationId": null,
+        "modelId": null,
+        "inputPrice": null,
+        "outputPrice": null,
+        "totalPrice": null,
     })
-    .to_string()
+}
+
+/// A page of the Observations API v2.
+fn page(observations: Vec<serde_json::Value>) -> Vec<u8> {
+    serde_json::json!({"data": observations, "meta": {"cursor": null}})
+        .to_string()
+        .into_bytes()
+}
+
+fn matching_body() -> Vec<u8> {
+    page(vec![observation(
+        &query().trace_id,
+        &query().span_id,
+        &query().name,
+    )])
 }
 
 fn client(server: &Server) -> langfuse_ergonomic::LangfuseClient {
@@ -51,26 +72,24 @@ async fn polls_bounded_exact_observation_until_it_arrives() {
             Matcher::UrlEncoded("traceId".into(), query().trace_id),
             Matcher::UrlEncoded("name".into(), query().name),
             Matcher::UrlEncoded("limit".into(), "1".into()),
-            Matcher::UrlEncoded("fromStartTime".into(), query().from_start_time),
-            Matcher::UrlEncoded("toStartTime".into(), query().to_start_time),
+            Matcher::UrlEncoded("fromStartTime".into(), "2026-10-05T12:00:00+00:00".into()),
+            Matcher::UrlEncoded("toStartTime".into(), "2026-10-05T12:02:00+00:00".into()),
         ]))
         .with_body_from_request(move |_| {
             match calls.fetch_add(1, Ordering::SeqCst) {
-                0 => br#"{"data":[]}"#.to_vec(),
-                1 => {
-                    // A similarly named span from another trace must not pass.
-                    serde_json::json!({"data": [{
-                        "traceId": "other-trace", "id": query().span_id, "name": query().name
-                    }]})
-                    .to_string()
-                    .into_bytes()
-                }
-                2 => serde_json::json!({"data": [{
-                    "traceId": query().trace_id, "id": "other-span", "name": query().name
-                }]})
-                .to_string()
-                .into_bytes(),
-                _ => matching_body().into_bytes(),
+                0 => page(vec![]),
+                // A similarly named span from another trace must not pass.
+                1 => page(vec![observation(
+                    "other-trace",
+                    &query().span_id,
+                    &query().name,
+                )]),
+                2 => page(vec![observation(
+                    &query().trace_id,
+                    "other-span",
+                    &query().name,
+                )]),
+                _ => matching_body(),
             }
         })
         .expect(4)
@@ -138,7 +157,10 @@ async fn stops_on_authentication_failure_without_retrying() {
     )
     .await
     .unwrap_err();
-    assert!(error.to_string().contains("401"));
+    assert!(
+        error.to_string().contains("Authentication failed"),
+        "{error}"
+    );
     mock.assert_async().await;
 }
 

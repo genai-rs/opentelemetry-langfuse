@@ -147,10 +147,14 @@ async fn verify_traces_in_langfuse(
     // Create Langfuse client using the same credentials
     let client = ClientBuilder::from_env()?.build()?;
 
-    // Query for recent traces
-    let traces = client.list_traces().limit(10).call().await?;
+    // Query for recent traces: on Langfuse v4 a trace is its root observation
+    let traces = client
+        .observations()
+        .is_root_observation(true)
+        .limit(10)
+        .call()
+        .await?;
 
-    // The response is now a strongly-typed Traces struct
     if traces.data.is_empty() {
         println!("WARNING: No traces found in Langfuse yet. They may still be processing.");
         return Ok(());
@@ -162,7 +166,7 @@ async fn verify_traces_in_langfuse(
     let found_expected = traces
         .data
         .iter()
-        .any(|trace| trace.id == expected_trace_id);
+        .any(|root| root.trace_id.as_deref() == Some(expected_trace_id));
 
     if found_expected {
         println!("SUCCESS: Found expected trace ID: {}", expected_trace_id);
@@ -171,8 +175,12 @@ async fn verify_traces_in_langfuse(
             "WARNING: Expected trace ID {} not found yet. Recent trace IDs:",
             expected_trace_id
         );
-        for (i, trace) in traces.data.iter().take(3).enumerate() {
-            println!("   {}. Trace ID: {}", i + 1, trace.id);
+        for (i, root) in traces.data.iter().take(3).enumerate() {
+            println!(
+                "   {}. Trace ID: {}",
+                i + 1,
+                root.trace_id.as_deref().unwrap_or("?")
+            );
         }
     }
 

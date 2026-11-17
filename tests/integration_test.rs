@@ -67,8 +67,8 @@ fn observation_query(span: &impl Span, name: &str) -> support::ObservationQuery 
         trace_id: span.span_context().trace_id().to_string(),
         span_id: span.span_context().span_id().to_string(),
         name: name.to_string(),
-        from_start_time: (now - chrono::Duration::minutes(1)).to_rfc3339(),
-        to_start_time: (now + chrono::Duration::minutes(1)).to_rfc3339(),
+        from_start_time: now - chrono::Duration::minutes(1),
+        to_start_time: now + chrono::Duration::minutes(1),
     }
 }
 
