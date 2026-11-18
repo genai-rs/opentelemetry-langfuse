@@ -17,7 +17,7 @@
 
 mod support;
 
-use chrono::Utc;
+use jiff::{SignedDuration, Timestamp};
 use langfuse_ergonomic::client::ClientBuilder;
 use opentelemetry::trace::{Span, SpanKind, Tracer, TracerProvider};
 use opentelemetry::KeyValue;
@@ -41,7 +41,7 @@ fn generate_test_id(test_name: &str) -> String {
         test_name,
         platform,
         arch,
-        Utc::now().timestamp_millis()
+        Timestamp::now().as_millisecond()
     )
 }
 
@@ -62,13 +62,13 @@ async fn verify_trace_in_langfuse(
 }
 
 fn observation_query(span: &impl Span, name: &str) -> support::ObservationQuery {
-    let now = Utc::now();
+    let now = Timestamp::now();
     support::ObservationQuery {
         trace_id: span.span_context().trace_id().to_string(),
         span_id: span.span_context().span_id().to_string(),
         name: name.to_string(),
-        from_start_time: now - chrono::Duration::minutes(1),
-        to_start_time: now + chrono::Duration::minutes(1),
+        from_start_time: now - SignedDuration::from_mins(1),
+        to_start_time: now + SignedDuration::from_mins(1),
     }
 }
 
@@ -106,7 +106,7 @@ async fn test_simple_span_processor() -> Result<(), Box<dyn std::error::Error>> 
             .with_kind(SpanKind::Server)
             .with_attributes([
                 KeyValue::new("test.type", "simple_processor"),
-                KeyValue::new("test.timestamp", Utc::now().to_rfc3339()),
+                KeyValue::new("test.timestamp", Timestamp::now().to_string()),
             ])
             .start(&tracer);
 
@@ -162,7 +162,7 @@ async fn test_batch_span_processor() -> Result<(), Box<dyn std::error::Error>> {
             .with_kind(SpanKind::Server)
             .with_attributes([
                 KeyValue::new("test.type", "batch_processor"),
-                KeyValue::new("test.timestamp", Utc::now().to_rfc3339()),
+                KeyValue::new("test.timestamp", Timestamp::now().to_string()),
             ])
             .start(&tracer);
 

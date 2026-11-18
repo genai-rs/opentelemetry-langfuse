@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use langfuse_ergonomic::{Error, LangfuseClient};
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
@@ -7,8 +7,8 @@ pub struct ObservationQuery {
     pub trace_id: String,
     pub span_id: String,
     pub name: String,
-    pub from_start_time: DateTime<Utc>,
-    pub to_start_time: DateTime<Utc>,
+    pub from_start_time: Timestamp,
+    pub to_start_time: Timestamp,
 }
 
 /// Wait until Langfuse returns the exported observation, through the Observations API v2
