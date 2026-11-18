@@ -72,8 +72,8 @@ async fn polls_bounded_exact_observation_until_it_arrives() {
             Matcher::UrlEncoded("traceId".into(), query().trace_id),
             Matcher::UrlEncoded("name".into(), query().name),
             Matcher::UrlEncoded("limit".into(), "1".into()),
-            Matcher::UrlEncoded("fromStartTime".into(), "2026-10-05T12:00:00+00:00".into()),
-            Matcher::UrlEncoded("toStartTime".into(), "2026-10-05T12:02:00+00:00".into()),
+            Matcher::UrlEncoded("fromStartTime".into(), "2026-10-05T12:00:00Z".into()),
+            Matcher::UrlEncoded("toStartTime".into(), "2026-10-05T12:02:00Z".into()),
         ]))
         .with_body_from_request(move |_| {
             match calls.fetch_add(1, Ordering::SeqCst) {
