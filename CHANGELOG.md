@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.7](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.7.6...v0.7.7) - 2026-11-19
+
+### Other
+
+- *(deps)* langfuse-ergonomic 0.17 (dev-dependency)
+
 ## [0.7.6](https://github.com/genai-rs/opentelemetry-langfuse/compare/v0.7.5...v0.7.6) - 2026-11-18
 
 ### Other
